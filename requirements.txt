@@ -1,0 +1,6 @@
+wheel
+numpy
+scipy
+tensorflow-gpu
+keras
+sacred
