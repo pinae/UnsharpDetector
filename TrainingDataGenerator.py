@@ -56,6 +56,9 @@ class UnsharpTrainingDataGenerator(Sequence):
 
     def blur_image(self, img):
         img = gaussian(img, sigma=0.5+4.5*random())
+        # camera shake
+        # masking
+        # add noise
         return img
 
 
