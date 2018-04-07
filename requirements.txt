@@ -1,6 +1,8 @@
 wheel
 numpy
 scipy
+scikit-image
 tensorflow-gpu
 keras
 sacred
+matplotlib
