@@ -55,11 +55,44 @@ class UnsharpTrainingDataGenerator(Sequence):
         return np.array(batch_x), np.array(batch_y)
 
     def blur_image(self, img):
-        img = gaussian(img, sigma=0.5+4.5*random())
-        # camera shake
-        # masking
-        # add noise
+        mode = choice([["blur"], ["shake"], ["blur", "shake"]])
+        blurred_img = img
+        if "blur" in mode:
+            blurred_img = gaussian(img, sigma=0.5+4.5*random())
+        if "shake" in mode:
+            blurred_img = self.add_shake(blurred_img)
+        if random() < 0.3:
+            blurred_img = self.add_mask(blurred_img, img)
+        if random() < 0.4:
+            blurred_img = self.add_noise(blurred_img)
+        return blurred_img
+
+    @staticmethod
+    def add_shake(img):
         return img
+
+    @staticmethod
+    def add_mask(blurred_img, clear_img):
+        mask = np.array([[0, 0, 0, 1, 1, 1, 0, 0, 0],
+                         [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                         [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                         [0, 1, 1, 1, 1, 1, 1, 1, 0],
+                         [0, 1, 1, 1, 1, 1, 1, 1, 0],
+                         [0, 1, 1, 1, 1, 1, 1, 1, 0],
+                         [0, 1, 1, 1, 1, 1, 1, 1, 0],
+                         [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                         [0, 0, 1, 1, 1, 1, 1, 0, 0],
+                         [0, 0, 0, 1, 1, 1, 0, 0, 0]], dtype=blurred_img.dtype)
+        mask = np.clip(mask + np.random.random(mask.shape)*0.5*(0.3+random()), 0, 1)
+        mask = np.repeat(mask.reshape(mask.shape[0], mask.shape[1], 1), 3, axis=2)
+        mask = resize(mask, (blurred_img.shape[0], blurred_img.shape[1], blurred_img.shape[2]), mode='reflect')
+        return mask * blurred_img + (1 - mask) * clear_img
+
+    @staticmethod
+    def add_noise(img):
+        noise = np.random.randn(*img.shape)*(0.05+0.1*random())
+        noise = gaussian(noise, sigma=0.1+1.1*random())
+        return np.clip(img+noise, 0, 1)
 
 
 if __name__ == "__main__":
