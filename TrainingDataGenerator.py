@@ -5,7 +5,7 @@ from os import path, listdir
 from keras.utils import Sequence
 from random import random, choice, randrange
 from skimage.io import imread, imshow, use_plugin, show
-from skimage.transform import resize
+from skimage.transform import resize, rotate
 from skimage.filters import gaussian
 from scipy.ndimage.filters import convolve
 from visualization_helpers import generate_y_image
@@ -69,6 +69,20 @@ class UnsharpTrainingDataGenerator(Sequence):
 
     @staticmethod
     def add_shake(img):
+        filter_matrix = np.zeros((9, 9), dtype=img.dtype)
+        shake_len = random()*6.5+2.5
+        filter_matrix[4, 4] = 1.0
+        for i in range(1, 5):
+            x = (shake_len - i * 2 + 1) / 2
+            filter_matrix[4+i, 4] = x
+            filter_matrix[4-i, 4] = x
+        filter_matrix = np.clip(filter_matrix, 0, 1)
+        filter_matrix = np.repeat(
+            filter_matrix.reshape(filter_matrix.shape[0], filter_matrix.shape[1], 1),
+            3, axis=2)
+        filter_matrix = rotate(filter_matrix, random() * 360, mode='constant', cval=0.0)
+        filter_matrix = filter_matrix / filter_matrix.sum()
+        img = convolve(img, filter_matrix, mode='reflect')
         return img
 
     @staticmethod
