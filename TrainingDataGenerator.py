@@ -45,7 +45,6 @@ class UnsharpTrainingDataGenerator(Sequence):
             crop_start_x = randrange(0, img.shape[1]-self.target_size[1])
             crop_start_y = randrange(0, img.shape[0]-self.target_size[0])
             img = img[crop_start_y:crop_start_y+self.target_size[0], crop_start_x:crop_start_x+self.target_size[1], :]
-            print(img.shape)
             if random() < 0.5:
                 batch_x.append(img)
                 batch_y.append(np.array([0, 1]))
@@ -58,7 +57,7 @@ class UnsharpTrainingDataGenerator(Sequence):
         mode = choice([["blur"], ["shake"], ["blur", "shake"]])
         blurred_img = img
         if "blur" in mode:
-            blurred_img = gaussian(img, sigma=0.5+4.5*random())
+            blurred_img = gaussian(img, sigma=0.5+4.5*random(), multichannel=True)
         if "shake" in mode:
             blurred_img = self.add_shake(blurred_img)
         if random() < 0.3:
@@ -105,7 +104,7 @@ class UnsharpTrainingDataGenerator(Sequence):
     @staticmethod
     def add_noise(img):
         noise = np.random.randn(*img.shape)*(0.05+0.1*random())
-        noise = gaussian(noise, sigma=0.1+1.1*random())
+        noise = gaussian(noise, sigma=0.1+1.1*random(), multichannel=True)
         return np.clip(img+noise, 0, 1)
 
 
