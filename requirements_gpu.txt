@@ -2,7 +2,7 @@ wheel
 numpy
 scipy
 scikit-image
-tensorflow
+tensorflow-gpu
 keras
 sacred
 matplotlib
