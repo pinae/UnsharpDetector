@@ -5,6 +5,7 @@ from sacred import Experiment
 from sacred.observers import MongoObserver
 from sacred.utils import apply_backspaces_and_linefeeds
 from keras.optimizers import Adam
+import keras.backend as K
 from keras.losses import categorical_crossentropy
 from model import create_model
 from TrainingDataGenerator import UnsharpTrainingDataGenerator
@@ -49,7 +50,7 @@ def config():
 @ex.capture
 def validate(model, x, y, bs):
     prediction = model.predict(x, batch_size=bs)
-    validation_loss = categorical_crossentropy(y, prediction)
+    validation_loss = K.eval(K.mean(categorical_crossentropy(K.constant(y), K.constant(prediction))))
     return validation_loss
 
 
@@ -60,5 +61,5 @@ def train(input_size, bs, lr, lr_decay, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, imag
     model.compile(optimizer, loss=categorical_crossentropy, metrics=["accuracy"])
     data_generator = UnsharpTrainingDataGenerator(image_folders, batch_size=bs, target_size=input_size)
     for x, y in data_generator:
-        model.fit(x, y, batch_size=bs, epochs=1)
-        validate(model, x, y)
+        model.fit(x, y, batch_size=bs, epochs=10)
+        print(validate(model, x, y))

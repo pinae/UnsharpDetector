@@ -14,13 +14,10 @@ def extract_edge_and_center_area(x):
     e6 = x[:, 0:16, -16:]
     e5 = x[:, K.shape(x)[0]-16:K.shape(x)[0]+16, -16:]
     e4 = x[:, -16:, -16:]
-    print(K.shape(e6))
-    print(K.shape(e5))
-    print(K.shape(e4))
-    l1 = K.concatenate([e0, e1, e2], axis=2)
-    l2 = K.concatenate([e7, cn, e3], axis=2)
-    l3 = K.concatenate([e6, e5, e4], axis=2)
-    return K.concatenate([l1, l2, l3], axis=1)
+    l1 = K.concatenate([e0, e1, e2], axis=1)
+    l2 = K.concatenate([e7, cn, e3], axis=1)
+    l3 = K.concatenate([e6, e5, e4], axis=1)
+    return K.concatenate([l1, l2, l3], axis=2)
 
 
 def calculate_output_shape(input_shape):

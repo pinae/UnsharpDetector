@@ -38,19 +38,28 @@ class UnsharpTrainingDataGenerator(Sequence):
         batch_x = []
         batch_y = []
         for i in range(len(self)):
-            img = imread(choice(self.image_filenames))
+            img_selected = False
+            while not img_selected:
+                selected_filename = choice(self.image_filenames)
+                img = imread(selected_filename)
+                if len(img.shape) == 3:
+                    img_selected = True
+                else:
+                    print("Error reading this image:")
+                    print(selected_filename)
+                    print("Shape: " + str(img.shape))
             min_scale_factor = max(self.target_size[0]/img.shape[0], self.target_size[1]/img.shape[1])
             sf = random()*(1-min_scale_factor)+min_scale_factor
             img = resize(img, (int(img.shape[0]*sf), int(img.shape[1]*sf), img.shape[2]), mode='reflect')
-            crop_start_x = randrange(0, img.shape[1]-self.target_size[1])
-            crop_start_y = randrange(0, img.shape[0]-self.target_size[0])
+            crop_start_x = randrange(0, img.shape[1]-self.target_size[1]+1)
+            crop_start_y = randrange(0, img.shape[0]-self.target_size[0]+1)
             img = img[crop_start_y:crop_start_y+self.target_size[0], crop_start_x:crop_start_x+self.target_size[1], :]
             if random() < 0.5:
-                batch_x.append(img)
-                batch_y.append(np.array([0, 1]))
+                batch_x.append(img.astype(np.float32))
+                batch_y.append(np.array([0, 1], dtype=np.float32))
             else:
-                batch_x.append(self.blur_image(img))
-                batch_y.append(np.array([1, 0]))
+                batch_x.append(self.blur_image(img).astype(np.float32))
+                batch_y.append(np.array([1, 0], dtype=np.float32))
         return np.array(batch_x), np.array(batch_y)
 
     def blur_image(self, img):
@@ -110,8 +119,8 @@ class UnsharpTrainingDataGenerator(Sequence):
 
 if __name__ == "__main__":
     generator = UnsharpTrainingDataGenerator(["../../Bilder/Backgrounds/"], batch_size=7)
-    batch_x, batch_y = generator.__getitem__(0)
-    print(batch_y)
+    bat_x, bat_y = generator.__getitem__(0)
+    print(bat_y)
     use_plugin("matplotlib")
-    imshow(np.concatenate([np.concatenate(batch_x, axis=1), generate_y_image(batch_y, dtype=batch_x.dtype)], axis=0))
+    imshow(np.concatenate([np.concatenate(bat_x, axis=1), generate_y_image(bat_y, dtype=bat_x.dtype)], axis=0))
     show()
