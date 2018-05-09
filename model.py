@@ -13,10 +13,10 @@ def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs):
     model.add(Conv2D(l2fc, kernel_size=l2fs, strides=2, use_bias=True, padding="same",
                      data_format="channels_last"))
     model.add(LeakyReLU(alpha=0.2))
-    model.add(Conv2D(l3fc, kernel_size=l3fs, strides=1, use_bias=True, padding="same",
-                     data_format="channels_last"))
-    model.add(LeakyReLU(alpha=0.2))
-    model.add(get_edge_and_center_extraction_layer())
+    # model.add(Conv2D(l3fc, kernel_size=l3fs, strides=1, use_bias=True, padding="same",
+    #                  data_format="channels_last"))
+    # model.add(LeakyReLU(alpha=0.2))
+    # model.add(get_edge_and_center_extraction_layer())
     model.add(Flatten())
     model.add(Dense(2, activation="softmax", use_bias=True, name="output"))
     return model
