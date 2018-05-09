@@ -9,12 +9,9 @@ from skimage.transform import resize, rotate
 from skimage.filters import gaussian
 from scipy.ndimage.filters import convolve
 from visualization_helpers import generate_y_image
+from ValidationDataProvider import NoUsableData
 import numpy as np
 import re
-
-
-class NoUsableTrainingData(Exception):
-    pass
 
 
 class UnsharpTrainingDataGenerator(Sequence):
@@ -29,7 +26,7 @@ class UnsharpTrainingDataGenerator(Sequence):
                 if filename_regex.match(filename):
                     self.image_filenames.append(path.join(path.abspath(folder), filename))
         if len(self.image_filenames) < 1:
-            raise NoUsableTrainingData
+            raise NoUsableData
         self.indexes = np.arange(len(self.image_filenames))
 
     def __len__(self):
