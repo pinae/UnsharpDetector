@@ -16,7 +16,10 @@ class TrainingPreview(QWidget):
         self.show_queue = show_queue
         self.feedback_queue = feedback_queue
         self.setWindowTitle("Training preview")
-        self.pixmap = QPixmap(QImage(np.zeros((256, 256, 3), dtype=np.int32), 256, 256, QImage.Format_RGB32))
+        self.pixmap = QPixmap(QImage(
+            self.convert_image(np.zeros((256, 256, 3), dtype=np.float32)),
+            256, 256, QImage.Format_RGB32))
+        #self.pixmap = QPixmap(QImage("../../Bilder/Bilder der Woche/04_Farbspektakel-648c3ec3dfbb6952.jpg"))
         self.show()
 
     #def __del__(self):
@@ -66,6 +69,16 @@ class TrainingPreview(QWidget):
         self.pixmap = QPixmap(qimage)
         self.update()
 
+    @staticmethod
+    def convert_image(numpy_array):
+        return np.left_shift(
+            np.left_shift(
+                np.left_shift(
+                    np.zeros((numpy_array.shape[0], numpy_array.shape[1]), dtype=np.uint32) + 0xff,
+                    8) + numpy_array[:, :, 0].astype(np.uint32),
+                8) + numpy_array[:, :, 1].astype(np.uint32),
+            8) + numpy_array[:, :, 2].astype(np.uint32)
+
 
 def start_gui(show_queue, feedback_queue):
     app_object = QApplication(sys.argv)
@@ -98,7 +111,7 @@ def init_gui():
 if __name__ == "__main__":
     sq, fq, thread = init_gui()
     from TrainingDataGenerator import UnsharpTrainingDataGenerator
-    g = UnsharpTrainingDataGenerator(["../../Bilder/CC-Photos/"], batch_size=2)
+    g = UnsharpTrainingDataGenerator(["../../Bilder/Bilder der Woche/"], batch_size=2)
     g.on_epoch_end()
     x, y = g.__getitem__(0)
     sq.put({'x': x, 'y': y,
