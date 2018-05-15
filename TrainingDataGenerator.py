@@ -43,7 +43,7 @@ class UnsharpTrainingDataGenerator(Sequence):
         batch_y = []
         for filename in filename_selection:
             img = imread(filename)
-            while len(img.shape) != 3:
+            while len(img.shape) != 3 or img.shape[0] < self.target_size[0] or img.shape[1] < self.target_size[1]:
                 print("Error reading this image: " + filename + " | Shape: " + str(img.shape))
                 filename = choice(self.image_filenames)
                 print("Replacing with: " + filename)
