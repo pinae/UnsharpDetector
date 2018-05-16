@@ -9,31 +9,36 @@ import unittest
 
 
 class EdgeAndCenterExtractionLayer(Layer):
-    def __init__(self, **kwargs):
+    def __init__(self, width, **kwargs):
+        self.w = width
         super(EdgeAndCenterExtractionLayer, self).__init__(**kwargs)
 
     def build(self, input_shape):
         super(EdgeAndCenterExtractionLayer, self).build(input_shape)
 
     def call(self, x, **kwargs):
+        batch_size = K.shape(x)[0]
         half_y = K.cast(K.shape(x)[1] / 2, dtype="int32")
         half_x = K.cast(K.shape(x)[2] / 2, dtype="int32")
-        e0 = x[:, 0:16, 0:16]
-        e1 = x[:, half_y - 16:half_y + 16, 0:16]
-        e2 = x[:, -16:, 0:16]
-        e7 = x[:, 0:16, half_x - 16:half_x + 16]
-        cn = x[:, half_y - 16:half_y + 16, half_x - 16:half_x + 16]
-        e3 = x[:, -16:, half_x - 16:half_x + 16]
-        e6 = x[:, 0:16, -16:]
-        e5 = x[:, half_y - 16:half_y + 16, -16:]
-        e4 = x[:, -16:, -16:]
+        channel_count = K.shape(x)[3]
+        e0 = x[:, 0:self.w, 0:self.w]
+        e1 = x[:, half_y - self.w:half_y + self.w, 0:self.w]
+        e2 = x[:, -self.w:, 0:self.w]
+        e7 = x[:, 0:self.w, half_x - self.w:half_x + self.w]
+        cn = x[:, half_y - self.w:half_y + self.w, half_x - self.w:half_x + self.w]
+        e3 = x[:, -self.w:, half_x - self.w:half_x + self.w]
+        e6 = x[:, 0:self.w, -self.w:]
+        e5 = x[:, half_y - self.w:half_y + self.w, -self.w:]
+        e4 = x[:, -self.w:, -self.w:]
         l1 = K.concatenate([e0, e1, e2], axis=1)
         l2 = K.concatenate([e7, cn, e3], axis=1)
         l3 = K.concatenate([e6, e5, e4], axis=1)
-        return K.concatenate([l1, l2, l3], axis=2)
+        return K.reshape(K.concatenate([l1, l2, l3], axis=2), (batch_size, 4 * self.w, 4 * self.w, channel_count))
 
     def compute_output_shape(self, input_shape):
-        return input_shape[0], 64, 64, input_shape[3]
+        print(input_shape)
+        print((input_shape[0], self.w * 4, self.w * 4, input_shape[3]))
+        return input_shape[0], self.w * 4, self.w * 4, input_shape[3]
 
 
 class TestVarianceLayer(unittest.TestCase):
@@ -47,7 +52,7 @@ class TestVarianceLayer(unittest.TestCase):
         data[0, 255, 255, 0] = 16
         data[0, 255, 128, 0] = 2
         inp = Input(shape=(256, 256, 3))
-        x = EdgeAndCenterExtractionLayer()(inp)
+        x = EdgeAndCenterExtractionLayer(16)(inp)
         model = Model(inputs=inp, outputs=x)
         keras_values = model.predict(data, batch_size=1)
         self.assertAlmostEqual(keras_values[0, 0, 0, 0], 13, places=4)

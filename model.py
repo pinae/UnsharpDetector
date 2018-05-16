@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 from keras.models import Model
 from keras.layers import Conv2D, LeakyReLU, Dense, Flatten, GlobalMaxPool2D, GlobalAveragePooling2D
-from keras.layers import Input, Lambda, Concatenate
+from keras.layers import Input, Lambda, Concatenate, Reshape
 from VarianceLayer import VarianceLayer
+from EdgeAndCenterExtractionLayer import EdgeAndCenterExtractionLayer
 
 
-def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs):
+def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
     inp = Input(shape=(input_shape[0], input_shape[1], 3))
     c1 = Conv2D(l1fc, kernel_size=l1fs, strides=2, use_bias=True, padding="same",
                 data_format="channels_last")(inp)
@@ -25,6 +26,10 @@ def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs):
     avg1 = GlobalAveragePooling2D(data_format="channels_last")(c1)
     avg2 = GlobalAveragePooling2D(data_format="channels_last")(c2)
     avg3 = GlobalAveragePooling2D(data_format="channels_last")(c3)
-    fv = Concatenate()([max1, max2, max3, avg1, avg2, avg3, v1, v2, v3])
+    eac = EdgeAndCenterExtractionLayer(width=eac_size)(c3)
+    eac_max = GlobalMaxPool2D(data_format="channels_last")(eac)
+    eac_avg = GlobalAveragePooling2D(data_format="channels_last")(eac)
+    eac_v = VarianceLayer()(eac)
+    fv = Concatenate()([max1, max2, max3, avg1, avg2, avg3, v1, v2, v3, eac_max, eac_avg, eac_v])
     o = Dense(2, activation="softmax", use_bias=True, name="output")(fv)
     return Model(inputs=inp, outputs=o)

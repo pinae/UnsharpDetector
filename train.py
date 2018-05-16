@@ -62,13 +62,18 @@ def config():
     l2fs = (3, 3)
     l3fc = 32
     l3fs = (3, 3)
+    eac_size = 8
     image_folders = [
         "../../Bilder/gesammelte Landschaftsbilder/",
         "../../Bilder/kleine Landschaftsbilder/",
-        "../../Bilder/Hintergrundbilder - schöne Landschaften/"
+        "../../Bilder/Hintergrundbilder - schöne Landschaften/",
+        "../../Bilder/Bilder der Woche/",
+        "../../Bilder/Texturen/",
+        "../../Bilder/Stephanie Waetjen/",
+        "../../Bilder/Sharp Photos/"
     ]
-    epochs = 100
-    use_gui = True
+    epochs = 20
+    use_gui = False
 
 
 @ex.capture
@@ -80,21 +85,27 @@ def validate(model, x, y, bs):
 
 
 @ex.capture
-def train(gui_queue, input_size, bs, lr, lr_decay, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, image_folders, epochs):
+def get_model(input_size, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
+    return create_model(input_size, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size)
+
+
+@ex.capture
+def train(gui_queue, input_size, bs, lr, lr_decay, image_folders, epochs):
     optimizer = Adam(lr, decay=lr_decay)
-    model = create_model(input_size, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs)
+    model = get_model()
     model.compile(optimizer, loss=categorical_crossentropy, metrics=["accuracy"])
+    print(model.summary())
     data_generator = UnsharpTrainingDataGenerator(image_folders, batch_size=bs, target_size=input_size)
     validation_data_provider = UnsharpValidationDataProvider("validation_data", batch_size=bs, target_size=input_size)
     for epoch in range(epochs):
         model.fit_generator(generator=data_generator,
                             validation_data=validation_data_provider,
                             callbacks=[ModelCheckpoint("unsharpDetectorWeights.hdf5", monitor='val_loss',
-                                                       save_best_only=True, mode='auto', period=1),
+                                                       save_best_only=False, mode='auto', period=1),
                                        LogPerformance(model, gui_queue, data_generator, bs)],
                             epochs=epochs,
                             use_multiprocessing=True,
-                            workers=8)
+                            workers=2, max_queue_size=30)
 
 
 @ex.automain
