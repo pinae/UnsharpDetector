@@ -4,7 +4,7 @@ from __future__ import division, print_function
 from os import path, listdir
 from keras.utils import Sequence
 from random import random, choice, randrange
-from skimage.io import imread, imshow, use_plugin, show
+from skimage.io import imread, imsave
 from skimage.transform import resize, rotate
 from skimage.filters import gaussian
 from scipy.ndimage.filters import convolve
@@ -123,9 +123,7 @@ class UnsharpTrainingDataGenerator(Sequence):
 
 
 if __name__ == "__main__":
-    generator = UnsharpTrainingDataGenerator(["../../Bilder/kleine Landschaftsbilder/"], batch_size=3)
+    generator = UnsharpTrainingDataGenerator(["../../Bilder/kleine Landschaftsbilder/"], batch_size=7)
     bat_x, bat_y = generator.__getitem__(0)
     print(bat_y)
-    use_plugin("matplotlib")
-    imshow(np.concatenate([np.concatenate(bat_x, axis=1), generate_y_image(bat_y, dtype=bat_x.dtype)], axis=0))
-    show()
+    imsave("test_data.png", (np.concatenate([np.concatenate(bat_x, axis=1), generate_y_image(bat_y, dtype=bat_x.dtype)], axis=0)))
