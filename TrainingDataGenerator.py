@@ -67,12 +67,12 @@ class UnsharpTrainingDataGenerator(Sequence):
         mode = choice([["blur"], ["shake"], ["blur", "shake"]])
         blurred_img = img
         if "blur" in mode:
-            blurred_img = gaussian(img, sigma=0.5+4.5*random(), multichannel=True)
+            blurred_img = gaussian(img, sigma=0.5+5.5*random(), multichannel=True)
         if "shake" in mode:
             blurred_img = self.add_shake(blurred_img)
-        if random() < 0.3:
+        if random() < 0.2:
             blurred_img = self.add_mask(blurred_img, img)
-        if random() < 0.4:
+        if random() < 0.2:
             blurred_img = self.add_noise(blurred_img)
         return blurred_img
 
