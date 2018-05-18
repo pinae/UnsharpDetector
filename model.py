@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from keras.models import Model
-from keras.layers import Conv2D, LeakyReLU, Dense, Flatten, GlobalMaxPool2D, GlobalAveragePooling2D
-from keras.layers import Input, Lambda, Concatenate, Reshape
+from keras.layers import Conv2D, LeakyReLU, Dense, GlobalMaxPool2D, GlobalAveragePooling2D
+from keras.layers import Input, Concatenate, MaxPool2D, AveragePooling2D, Flatten
 from VarianceLayer import VarianceLayer
 from EdgeAndCenterExtractionLayer import EdgeAndCenterExtractionLayer
 
@@ -17,19 +17,26 @@ def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
     l2 = LeakyReLU(alpha=0.2)(c2)
     c3 = Conv2D(l3fc, kernel_size=l3fs, strides=1, use_bias=True, padding="same",
                 data_format="channels_last")(l2)
-    v1 = VarianceLayer()(c1)
-    v2 = VarianceLayer()(c2)
-    v3 = VarianceLayer()(c3)
-    max1 = GlobalMaxPool2D(data_format="channels_last")(c1)
-    max2 = GlobalMaxPool2D(data_format="channels_last")(c2)
-    max3 = GlobalMaxPool2D(data_format="channels_last")(c3)
-    avg1 = GlobalAveragePooling2D(data_format="channels_last")(c1)
-    avg2 = GlobalAveragePooling2D(data_format="channels_last")(c2)
-    avg3 = GlobalAveragePooling2D(data_format="channels_last")(c3)
     eac = EdgeAndCenterExtractionLayer(width=eac_size)(c3)
-    eac_max = GlobalMaxPool2D(data_format="channels_last")(eac)
-    eac_avg = GlobalAveragePooling2D(data_format="channels_last")(eac)
-    eac_v = VarianceLayer()(eac)
-    fv = Concatenate()([max1, max2, max3, avg1, avg2, avg3, v1, v2, v3, eac_max, eac_avg, eac_v])
-    o = Dense(2, activation="softmax", use_bias=True, name="output")(fv)
+    eac_max_grid = MaxPool2D((eac_size, eac_size), strides=eac_size,
+                             padding="valid", data_format="channels_last")(eac)
+    eac_avg_grid = AveragePooling2D((eac_size, eac_size), strides=eac_size,
+                                    padding="valid", data_format="channels_last")(eac)
+    features = [VarianceLayer()(c1),
+                VarianceLayer()(c2),
+                VarianceLayer()(c3),
+                GlobalMaxPool2D(data_format="channels_last")(c1),
+                GlobalMaxPool2D(data_format="channels_last")(c2),
+                GlobalMaxPool2D(data_format="channels_last")(c3),
+                GlobalAveragePooling2D(data_format="channels_last")(c1),
+                GlobalAveragePooling2D(data_format="channels_last")(c2),
+                GlobalAveragePooling2D(data_format="channels_last")(c3),
+                GlobalMaxPool2D(data_format="channels_last")(eac),
+                GlobalAveragePooling2D(data_format="channels_last")(eac),
+                VarianceLayer()(eac),
+                Flatten()(eac_max_grid),
+                Flatten()(eac_avg_grid)
+                ]
+    feature_vector = Concatenate()(features)
+    o = Dense(2, activation="softmax", use_bias=True, name="output")(feature_vector)
     return Model(inputs=inp, outputs=o)
