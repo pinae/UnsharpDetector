@@ -32,28 +32,34 @@ def log_validation_performance(_run, val_loss, val_accuracy):
 
 
 class LogPerformance(Callback):
-    def __init__(self, model, gui_queue, data_generator, bs):
+    def __init__(self, model, gui_callback, data_generator, bs):
         super().__init__()
         self.model = model
         self.data_generator = data_generator
-        self.gui_queue = gui_queue
+        self.gui_callback = gui_callback
         self.bs = bs
+        self.epoch = 0
+
+    def on_epoch_begin(self, epoch, logs={}):
+        self.epoch = epoch
+
+    def on_batch_begin(self, batch, logs=None):
+        if self.gui_callback and batch % 10 == 0:
+            x, y = self.data_generator.__getitem__(batch)
+            prediction = self.model.predict(x, batch_size=self.bs)
+            self.gui_callback(x, y, prediction, self.epoch)
 
     def on_batch_end(self, batch, logs={}):
         log_training_performance(loss=logs.get("loss"), accuracy=logs.get("acc"))
 
     def on_epoch_end(self, epoch, logs={}):
         log_validation_performance(val_loss=logs.get("val_loss"), val_accuracy=logs.get("val_acc"))
-        if self.gui_queue:
-            x, y = self.data_generator.__getitem__(0)
-            prediction = self.model.predict(x, batch_size=self.bs)
-            self.gui_queue.put({'x': x, 'y': y, 'prediction': prediction, 'epoch': epoch})
 
 
 @ex.config
 def config():
     input_size = (256, 256)
-    bs = 10
+    bs = 12
     lr = 0.0001
     lr_decay = 0.0
     l1fc = 32
@@ -69,11 +75,14 @@ def config():
         "../../Bilder/Hintergrundbilder - schöne Landschaften/",
         "../../Bilder/Bilder der Woche/",
         "../../Bilder/Texturen/",
+        "../../Bilder/Famous Photos/",
+        "../../Bilder/Korea/",
+        "../../Bilder/Urlaubsbilder/",
         "../../Bilder/Stephanie Waetjen/",
         "../../Bilder/Sharp Photos/"
     ]
-    epochs = 20
-    use_gui = False
+    epochs = 50
+    use_gui = True
 
 
 @ex.capture
@@ -90,31 +99,31 @@ def get_model(input_size, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
 
 
 @ex.capture
-def train(gui_queue, input_size, bs, lr, lr_decay, image_folders, epochs):
+def train(gui_callback, input_size, bs, lr, lr_decay, image_folders, epochs):
     optimizer = Adam(lr, decay=lr_decay)
     model = get_model()
     model.compile(optimizer, loss=categorical_crossentropy, metrics=["accuracy"])
     print(model.summary())
     data_generator = UnsharpTrainingDataGenerator(image_folders, batch_size=bs, target_size=input_size)
+    data_generator.on_epoch_end()
     validation_data_provider = UnsharpValidationDataProvider("validation_data", batch_size=bs, target_size=input_size)
-    for epoch in range(epochs):
-        model.fit_generator(generator=data_generator,
-                            validation_data=validation_data_provider,
-                            callbacks=[ModelCheckpoint("unsharpDetectorWeights.hdf5", monitor='val_loss',
-                                                       save_best_only=False, mode='auto', period=1),
-                                       LogPerformance(model, gui_queue, data_generator, bs)],
-                            epochs=epochs,
-                            use_multiprocessing=True,
-                            workers=2, max_queue_size=30)
+    model.fit_generator(generator=data_generator,
+                        validation_data=validation_data_provider,
+                        callbacks=[ModelCheckpoint("unsharpDetectorWeights.hdf5", monitor='val_loss',
+                                                   save_best_only=False, mode='auto', period=1),
+                                   LogPerformance(model, gui_callback, data_generator, bs)],
+                        epochs=epochs,
+                        use_multiprocessing=True,
+                        workers=8, max_queue_size=30)
 
 
 @ex.automain
 def run(use_gui):
-    gui_process = None
-    gui_queue = None
+    gui_thread = None
+    gui_callback = None
     if use_gui:
         from gui import init_gui
-        gui_queue, gui_process = init_gui()
-    train(gui_queue)
-    if gui_process:
-        gui_process.join()
+        gui_callback, feedback_queue, gui_thread = init_gui()
+    train(gui_callback)
+    if gui_thread:
+        gui_thread.join()
