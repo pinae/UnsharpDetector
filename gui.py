@@ -11,20 +11,20 @@ import numpy as np
 
 
 class TrainingPreview(QWidget):
-    def __init__(self, show_queue, feedback_queue):
+    def __init__(self, feedback_queue):
         super().__init__()
-        self.show_queue = show_queue
         self.feedback_queue = feedback_queue
         self.setWindowTitle("Training preview")
-        self.pixmap = QPixmap(QImage(
+        self.resize(4 * 256, 3 * 276)
+        self.setMinimumWidth(256)
+        self.pixmaps = [QPixmap(QImage(
             self.convert_image(np.zeros((256, 256, 3), dtype=np.float32)),
-            256, 256, QImage.Format_RGB32))
-        #self.pixmap = QPixmap(QImage("../../Bilder/Bilder der Woche/04_Farbspektakel-648c3ec3dfbb6952.jpg"))
+            256, 256, QImage.Format_RGB32))]
+        self.labels = [{"color": QColor(0, 255, 0)}]
+        self.predictions = [{"color": QColor(128, 128, 0)}]
+        self.white = QColor(255, 255, 255)
+        self.font = QFont('Sans-Serif', 12, QFont.Normal)
         self.show()
-
-    #def __del__(self):
-    #    if self.train_process.is_alive():
-    #        self.train_process.join()
 
     def paintEvent(self, e):
         qp = QPainter()
@@ -36,13 +36,17 @@ class TrainingPreview(QWidget):
 
     def draw(self, qp):
         size = self.size()
-        w = size.width()
-        h = size.height()
-        qp.drawPixmap(QRect(0, 0, 256, 256), self.pixmap, QRect(0, 0, 256, 256))
-        font = QFont('Sans-Serif', 12, QFont.Normal)
-        qp.setFont(font)
-        qp.setPen(QColor(128, 128, 128))
-        qp.setBrush(QColor(255, 255, 255))
+        line_len = size.width()//256
+        qp.setFont(self.font)
+        qp.setPen(self.white)
+        for i, pixmap in enumerate(self.pixmaps):
+            qp.drawPixmap(QRect((i % line_len) * 256, (i // line_len) * 276, 256, 256),
+                          pixmap, QRect(0, 0, 256, 256))
+            qp.setBrush(self.labels[i]["color"])
+            qp.drawRect((i % line_len) * 256, (i // line_len) * 276 + 256, 128, 20)
+            qp.setBrush(self.predictions[i]["color"])
+            qp.drawRect((i % line_len) * 256 + 128, (i // line_len) * 276 + 256, 128, 20)
+
         """qp.drawRoundedRect(0, 0, w, h, 5, 5)
         qp.setPen(QColor(0, 0, 0))
         font_metrics = qp.fontMetrics()
@@ -63,10 +67,21 @@ class TrainingPreview(QWidget):
                     qp.drawRoundedRect(c_start_position+2, 4, block_width, 20, 2, 2)"""
 
     def show_data(self, images, labels, predictions, epoch):
-        img = images[0].astype(np.int32)
-        print(predictions)
-        qimage = QImage(img, img.shape[0], img.shape[1], QImage.Format_RGB32)
-        self.pixmap = QPixmap(qimage)
+        self.setWindowTitle("Training preview | Epoch: " + str(epoch))
+        from skimage.io import imsave
+        imsave("test_data.png", np.clip(np.concatenate(images, axis=0), 0, 1))
+        self.pixmaps = []
+        self.labels = []
+        self.predictions = []
+        for i, img in enumerate(images):
+            qimage = QImage(self.convert_image(img * 255), img.shape[0], img.shape[1], QImage.Format_RGB32)
+            self.pixmaps.append(QPixmap.fromImage(qimage).copy())
+            self.labels.append({
+                "color": QColor(int(labels[i][0] * 255), int(labels[i][1] * 255), 0)
+            })
+            self.predictions.append({
+                "color": QColor(int(predictions[i][0] * 255), int(predictions[i][1] * 255), 0)
+            })
         self.update()
 
     @staticmethod
@@ -80,43 +95,38 @@ class TrainingPreview(QWidget):
             8) + numpy_array[:, :, 2].astype(np.uint32)
 
 
-def start_gui(show_queue, feedback_queue):
+def run_gui(feedback_queue):
     app_object = QApplication(sys.argv)
-    window = TrainingPreview(show_queue, feedback_queue)
+    window = TrainingPreview(feedback_queue)
+    feedback_queue.put({"callback": window.show_data})
     status = app_object.exec_()
     feedback_queue.put({"stop": status})
-    running = False
-    while running:
-        #if not show_queue.empty():
-        #    batch = show_queue.get()
-        #    window.show_data(batch['x'], batch['y'], batch['prediction'], batch['epoch'])
-        if not window:
-            print("stop command")
-            feedback_queue.put("stop")
-            running = False
-        #if not feedback_queue.empty():
-        #    feedback = feedback_queue.get_nowait()
-        #    if feedback == "stop":
-        #        running = False
 
 
 def init_gui():
-    show_queue = Queue()
     feedback_queue = Queue()
-    gui_thread = Thread(target=start_gui, args=(show_queue, feedback_queue))
+    gui_thread = Thread(target=run_gui, args=(feedback_queue,))
     gui_thread.start()
-    return show_queue, feedback_queue, gui_thread
+    initialization_answer = feedback_queue.get(True)
+    if "callback" in initialization_answer:
+        return initialization_answer["callback"], feedback_queue, gui_thread
+    else:
+        print("ERROR: No Callback in init answer!")
+    return None, feedback_queue, gui_thread
 
 
 if __name__ == "__main__":
-    sq, fq, thread = init_gui()
+    clb, fq, thread = init_gui()
     from TrainingDataGenerator import UnsharpTrainingDataGenerator
-    g = UnsharpTrainingDataGenerator(["../../Bilder/Bilder der Woche/"], batch_size=2)
+    g = UnsharpTrainingDataGenerator(["../../Bilder/Bilder der Woche/"], batch_size=7)
     g.on_epoch_end()
     x, y = g.__getitem__(0)
-    sq.put({'x': x, 'y': y,
-            'prediction': np.array([[0.2, 0.8], [0.9, 0.1]], dtype=np.float32),
-            'epoch': 0})
+    print("x.shape: " + str(x.shape))
+    print("y.shape: " + str(y.shape))
+    clb(x, y, np.array([[0.2, 0.8], [0.9, 0.1],
+                        [0.3, 0.7], [0.3, 0.7],
+                        [0.3, 0.7], [0.3, 0.7],
+                        [0.3, 0.7]], dtype=np.float32), 0)
     feedback = fq.get()
     if "stop" in feedback.keys():
         print("stopping")
