@@ -3,6 +3,7 @@
 from keras.models import Model
 from keras.layers import Conv2D, LeakyReLU, Dense, GlobalMaxPool2D, GlobalAveragePooling2D
 from keras.layers import Input, Concatenate, MaxPool2D, AveragePooling2D, Flatten
+from GlobalVarianceLayer import GlobalVarianceLayer
 from VarianceLayer import VarianceLayer
 from EdgeAndCenterExtractionLayer import EdgeAndCenterExtractionLayer
 
@@ -22,9 +23,9 @@ def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
                              padding="valid", data_format="channels_last")(eac)
     eac_avg_grid = AveragePooling2D((eac_size, eac_size), strides=eac_size,
                                     padding="valid", data_format="channels_last")(eac)
-    features = [VarianceLayer()(c1),
-                VarianceLayer()(c2),
-                VarianceLayer()(c3),
+    features = [GlobalVarianceLayer()(c1),
+                GlobalVarianceLayer()(c2),
+                GlobalVarianceLayer()(c3),
                 GlobalMaxPool2D(data_format="channels_last")(c1),
                 GlobalMaxPool2D(data_format="channels_last")(c2),
                 GlobalMaxPool2D(data_format="channels_last")(c3),
@@ -33,9 +34,12 @@ def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
                 GlobalAveragePooling2D(data_format="channels_last")(c3),
                 GlobalMaxPool2D(data_format="channels_last")(eac),
                 GlobalAveragePooling2D(data_format="channels_last")(eac),
-                VarianceLayer()(eac),
-                Flatten()(eac_max_grid),
-                Flatten()(eac_avg_grid)
+                GlobalVarianceLayer()(eac),
+                Flatten()(VarianceLayer((eac_size, eac_size))(eac))
+                #Flatten()(VarianceLayer((eac_size, eac_size))(eac_max_grid)),
+                #Flatten()(VarianceLayer((eac_size, eac_size))(eac_avg_grid)),
+                #Flatten()(eac_max_grid),
+                #Flatten()(eac_avg_grid)
                 ]
     feature_vector = Concatenate()(features)
     o = Dense(2, activation="softmax", use_bias=True, name="output")(feature_vector)

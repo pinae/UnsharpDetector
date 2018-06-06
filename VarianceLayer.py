@@ -10,46 +10,53 @@ import unittest
 
 
 class VarianceLayer(Layer):
-    def __init__(self, **kwargs):
+    def __init__(self, tile_size, **kwargs):
+        self.tile_size = tile_size
         super(VarianceLayer, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        super(VarianceLayer, self).build(input_shape)  # Be sure to call this somewhere!
+        super(VarianceLayer, self).build(input_shape)
 
     def call(self, x, **kwargs):
-        mean = K.mean(K.mean(x, axis=2), axis=1)
-        mean_vector = K.repeat_elements(K.expand_dims(mean, axis=1), x.get_shape()[1], axis=1)
-        mean_matrix = K.repeat_elements(K.expand_dims(mean_vector, axis=2), x.get_shape()[2], axis=2)
+        means = K.pool2d(x, self.tile_size, strides=self.tile_size, padding="same",
+                         pool_mode="avg", data_format="channels_last")
+        mean_matrix = K.resize_images(means, self.tile_size[0], self.tile_size[1],
+                                      data_format="channels_last")[:,
+                      0:K.shape(x)[1], 0:K.shape(x)[2], :]
         quad_diff = (x - mean_matrix) ** 2
-        return K.mean(K.mean(quad_diff, axis=2), axis=1)
+        return K.pool2d(quad_diff, self.tile_size, strides=self.tile_size, padding="same", pool_mode="avg")
 
     def compute_output_shape(self, input_shape):
-        return input_shape[0], input_shape[3]
+        return input_shape[0], input_shape[1] // self.tile_size[0], input_shape[2] // self.tile_size[1], input_shape[3]
 
 
 class TestVarianceLayer(unittest.TestCase):
-    def test_2d_mean(self):
+    def test_pool_mean(self):
         data = np.array([[[[1, 0], [2, 1], [3, -1]],
                           [[0, 1], [1, -2], [2, 1]],
+                          [[-2, -1], [-1, -1], [3, 2]],
                           [[-2, -1], [-1, -1], [3, 2]]]], dtype=np.float32)
         x = K.variable(data, dtype=K.floatx())
-        mean = K.eval(K.mean(K.mean(x, axis=2), axis=1))
-        self.assertAlmostEqual(mean[0, 0], 1.0)
-        self.assertAlmostEqual(mean[0, 1], 0.0)
+        means = K.eval(K.pool2d(x, (2, 2), strides=(2, 2), padding="valid", pool_mode="avg"))
+        self.assertAlmostEqual(means[0, 0, 0, 0], 1.0)
+        self.assertAlmostEqual(means[0, 0, 0, 1], 0.0)
+        self.assertAlmostEqual(means[0, 1, 0, 0], -1.5)
+        self.assertAlmostEqual(means[0, 1, 0, 1], -1.0)
 
     def test_variance(self):
         data = np.array([[[[1, 2], [2, 3], [-1, -2]],
                           [[-1, 3], [2, -5], [0, 1]],
-                          [[-2, 7], [0.5, -2], [2, -1]]]], dtype=np.float32)
-        inp = Input(shape=(3, 3, 2))
-        x = VarianceLayer()(inp)
+                          [[-2, 2], [0.5, -2], [2, -1]],
+                          [[2, -4], [-0.5, -1], [3, 2]]]], dtype=np.float32)
+        inp = Input(shape=(4, 3, 2))
+        x = VarianceLayer((2, 2))(inp)
         model = Model(inputs=inp, outputs=x)
         keras_values = model.predict(data, batch_size=1)
-        self.assertAlmostEqual(keras_values[0, 0],
-                               np.array([[[1, 2, -1],
-                                          [-1, 2, 0],
-                                          [-2, 0.5, 2]]], dtype=np.float32).var(), places=4)
-        self.assertAlmostEqual(keras_values[0, 1],
-                               np.array([[[2, 3, -2],
-                                          [3, -5, 1],
-                                          [7, -2, -1]]], dtype=np.float32).var(), places=4)
+        self.assertAlmostEqual(keras_values[0, 0, 0, 0], 1.5, places=4)
+        self.assertAlmostEqual(keras_values[0, 0, 1, 0], 0.25, places=4)
+        self.assertAlmostEqual(keras_values[0, 1, 0, 0], 2.125, places=4)
+        self.assertAlmostEqual(keras_values[0, 1, 1, 0], 0.25, places=4)
+        self.assertAlmostEqual(keras_values[0, 0, 0, 1], 11.1875, places=4)
+        self.assertAlmostEqual(keras_values[0, 0, 1, 1], 2.25, places=4)
+        self.assertAlmostEqual(keras_values[0, 1, 0, 1], 4.6875, places=4)
+        self.assertAlmostEqual(keras_values[0, 1, 1, 1], 2.25, places=4)
