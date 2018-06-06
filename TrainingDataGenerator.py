@@ -49,18 +49,34 @@ class UnsharpTrainingDataGenerator(Sequence):
                 print("Replacing with: " + filename)
                 img = imread(filename)
             min_scale_factor = max(self.target_size[0] / img.shape[0], self.target_size[1] / img.shape[1])
-            sf = random() * (1 - min_scale_factor) + min_scale_factor
-            img = resize(img, (int(img.shape[0] * sf), int(img.shape[1] * sf), img.shape[2]), mode='reflect')
-            crop_start_x = randrange(0, img.shape[1] - self.target_size[1] + 1)
-            crop_start_y = randrange(0, img.shape[0] - self.target_size[0] + 1)
-            img = img[crop_start_y:crop_start_y + self.target_size[0],
-                      crop_start_x:crop_start_x + self.target_size[1], :].astype(np.float32)
+            acceptable_crop_found = False
+            fail_counter = 0
             if random() < 0.5:
-                batch_x.append(img)
-                batch_y.append(np.array([0, 1], dtype=np.float32))
+                one_hot_class = np.array([0, 1], dtype=np.float32)
             else:
-                batch_x.append(self.blur_image(img))
-                batch_y.append(np.array([1, 0], dtype=np.float32))
+                one_hot_class = np.array([1, 0], dtype=np.float32)
+            small_img = None
+            while not acceptable_crop_found and fail_counter < 10:
+                sf = random() * (1 - min_scale_factor) + min_scale_factor
+                small_img = resize(img, (int(img.shape[0] * sf), int(img.shape[1] * sf), img.shape[2]), mode='reflect')
+                crop_start_x = randrange(0, small_img.shape[1] - self.target_size[1] + 1)
+                crop_start_y = randrange(0, small_img.shape[0] - self.target_size[0] + 1)
+                small_img = small_img[crop_start_y:crop_start_y + self.target_size[0],
+                                      crop_start_x:crop_start_x + self.target_size[1], :].astype(np.float32)
+                if one_hot_class[0] > 0.5:
+                    blurred_img = self.blur_image(small_img)
+                    if np.mean((small_img - blurred_img) ** 2, axis=None) > 0.00017:
+                        acceptable_crop_found = True
+                        small_img = blurred_img
+                    else:
+                        fail_counter += 1
+                else:
+                    if np.mean((small_img - gaussian(small_img, sigma=3.0)) ** 2, axis=None) > 0.00017:
+                        acceptable_crop_found = True
+                    else:
+                        fail_counter += 1
+            batch_x.append(small_img / 255)
+            batch_y.append(one_hot_class)
         return np.array(batch_x), np.array(batch_y)
 
     def blur_image(self, img):
@@ -123,7 +139,8 @@ class UnsharpTrainingDataGenerator(Sequence):
 
 
 if __name__ == "__main__":
-    generator = UnsharpTrainingDataGenerator(["../../Bilder/kleine Landschaftsbilder/"], batch_size=7)
+    generator = UnsharpTrainingDataGenerator(["../../Bilder/Backgrounds/"], batch_size=7)
     bat_x, bat_y = generator.__getitem__(0)
     print(bat_y)
-    imsave("test_data.png", (np.concatenate([np.concatenate(bat_x, axis=1), generate_y_image(bat_y, dtype=bat_x.dtype)], axis=0)))
+    imsave("test_data.png", (np.concatenate([np.concatenate(np.clip(bat_x * 255, 0, 1), axis=1),
+                                             generate_y_image(bat_y, dtype=bat_x.dtype)], axis=0)))

@@ -41,8 +41,8 @@ class EdgeAndCenterExtractionLayer(Layer):
         return input_shape[0], self.w * 4, self.w * 4, input_shape[3]
 
 
-class TestVarianceLayer(unittest.TestCase):
-    def test_Extraction(self):
+class TestEdgeAndCenterExtractionLayer(unittest.TestCase):
+    def test_extraction(self):
         data = np.zeros((1, 256, 256, 3), dtype=np.float32)
         data[0, 0, 0, 0] = 13
         data[0, 17, 17, 0] = 8
