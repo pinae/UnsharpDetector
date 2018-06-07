@@ -19,7 +19,13 @@ ex.captured_out_filter = apply_backspaces_and_linefeeds
 
 
 @ex.capture
-def log_training_performance(_run, loss, accuracy):
+def log_training_performance_batch(_run, loss, accuracy):
+    _run.log_scalar("batch_loss", float(loss))
+    _run.log_scalar("batch_accuracy", float(accuracy))
+
+
+@ex.capture
+def log_training_performance_epoch(_run, loss, accuracy):
     _run.log_scalar("loss", float(loss))
     _run.log_scalar("accuracy", float(accuracy))
 
@@ -50,9 +56,10 @@ class LogPerformance(Callback):
             self.gui_callback(x, y, prediction, self.epoch)
 
     def on_batch_end(self, batch, logs={}):
-        log_training_performance(loss=logs.get("loss"), accuracy=logs.get("acc"))
+        log_training_performance_batch(loss=logs.get("loss"), accuracy=logs.get("acc"))
 
     def on_epoch_end(self, epoch, logs={}):
+        log_training_performance_epoch(loss=logs.get("loss"), accuracy=logs.get("acc"))
         log_validation_performance(val_loss=logs.get("val_loss"), val_accuracy=logs.get("val_acc"))
 
 
@@ -61,7 +68,7 @@ def config():
     input_size = (256, 256)
     bs = 12
     lr = 0.0001
-    lr_decay = 0.0
+    lr_decay = 0.0002
     l1fc = 32
     l1fs = (9, 9)
     l2fc = 32
