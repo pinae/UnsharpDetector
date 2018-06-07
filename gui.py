@@ -4,7 +4,7 @@ from __future__ import division, print_function, unicode_literals
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtGui import QImage, QPainter, QPixmap, QFont, QColor
-from PyQt5.QtCore import QRect
+from PyQt5.QtCore import QRect, Qt
 from threading import Thread
 from queue import Queue
 import numpy as np
@@ -75,7 +75,7 @@ class TrainingPreview(QWidget):
         self.predictions = []
         for i, img in enumerate(images):
             qimage = QImage(self.convert_image(img * 255), img.shape[0], img.shape[1], QImage.Format_RGB32)
-            self.pixmaps.append(QPixmap.fromImage(qimage).copy())
+            self.pixmaps.append(QPixmap().fromImage(qimage, flags=(Qt.AutoColor | Qt.DiffuseDither)).copy())
             self.labels.append({
                 "color": QColor(int(labels[i][0] * 255), int(labels[i][1] * 255), 0)
             })
