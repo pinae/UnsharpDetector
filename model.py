@@ -6,12 +6,25 @@ from keras.layers import Input, Concatenate, MaxPool2D, AveragePooling2D, Flatte
 from GlobalVarianceLayer import GlobalVarianceLayer
 from VarianceLayer import VarianceLayer
 from EdgeAndCenterExtractionLayer import EdgeAndCenterExtractionLayer
+import numpy as np
+
+
+def laplacian_group_initializer(shape, dtype=None):
+    kernel = np.zeros(shape, dtype=dtype)
+    if np.random.random() < 0.5 and kernel.shape[0] >= 3 and len(kernel.shape) == 2:
+        kernel[int(kernel.shape[0] // 2) - 1, int(kernel.shape[1] // 2)] = 1
+        kernel[int(kernel.shape[0] // 2) + 1, int(kernel.shape[1] // 2)] = 1
+    if np.random.random() < 0.5 and kernel.shape[1] >= 3 and len(kernel.shape) == 2:
+        kernel[int(kernel.shape[0] // 2), int(kernel.shape[1] // 2) - 1] = 1
+        kernel[int(kernel.shape[0] // 2), int(kernel.shape[1] // 2) + 1] = 1
+    kernel[tuple(map(lambda x: int(np.floor(x / 2)), kernel.shape))] = np.sum(kernel)
+    return kernel + np.random.randn(*shape) * 0.1
 
 
 def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
     inp = Input(shape=(input_shape[0], input_shape[1], 3))
     c1 = Conv2D(l1fc, kernel_size=l1fs, strides=2, use_bias=True, padding="same",
-                data_format="channels_last")(inp)
+                data_format="channels_last", kernel_initializer=laplacian_group_initializer)(inp)
     l1 = LeakyReLU(alpha=0.2)(c1)
     c2 = Conv2D(l2fc, kernel_size=l2fs, strides=2, use_bias=True, padding="same",
                 data_format="channels_last")(l1)
