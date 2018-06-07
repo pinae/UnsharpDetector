@@ -75,7 +75,7 @@ class UnsharpTrainingDataGenerator(Sequence):
                         acceptable_crop_found = True
                     else:
                         fail_counter += 1
-            batch_x.append(small_img / 255)
+            batch_x.append(small_img)
             batch_y.append(one_hot_class)
         return np.array(batch_x), np.array(batch_y)
 
@@ -142,5 +142,5 @@ if __name__ == "__main__":
     generator = UnsharpTrainingDataGenerator(["../../Bilder/kleine Landschaftsbilder/"], batch_size=7)
     bat_x, bat_y = generator.__getitem__(0)
     print(bat_y)
-    imsave("test_data.png", (np.concatenate([np.concatenate(np.clip(bat_x * 255, 0, 1), axis=1),
+    imsave("test_data.png", (np.concatenate([np.concatenate(np.clip(bat_x, 0, 1), axis=1),
                                              generate_y_image(bat_y, dtype=bat_x.dtype)], axis=0)))
