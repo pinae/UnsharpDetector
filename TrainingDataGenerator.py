@@ -71,7 +71,7 @@ class UnsharpTrainingDataGenerator(Sequence):
                     else:
                         fail_counter += 1
                 else:
-                    if np.mean((small_img - gaussian(small_img, sigma=3.0)) ** 2, axis=None) > 0.00017:
+                    if np.mean((small_img - gaussian(small_img, sigma=3.0, multichannel=True)) ** 2, axis=None) > 0.00017:
                         acceptable_crop_found = True
                     else:
                         fail_counter += 1
@@ -139,7 +139,7 @@ class UnsharpTrainingDataGenerator(Sequence):
 
 
 if __name__ == "__main__":
-    generator = UnsharpTrainingDataGenerator(["../../Bilder/Backgrounds/"], batch_size=7)
+    generator = UnsharpTrainingDataGenerator(["../../Bilder/kleine Landschaftsbilder/"], batch_size=7)
     bat_x, bat_y = generator.__getitem__(0)
     print(bat_y)
     imsave("test_data.png", (np.concatenate([np.concatenate(np.clip(bat_x * 255, 0, 1), axis=1),
