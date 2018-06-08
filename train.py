@@ -12,6 +12,7 @@ from model import create_model
 from TrainingDataGenerator import UnsharpTrainingDataGenerator
 from ValidationDataProvider import UnsharpValidationDataProvider
 from secret_settings import mongo_url, db_name
+import json
 
 ex = Experiment("UnsharpDetector")
 ex.observers.append(MongoObserver.create(url=mongo_url, db_name=db_name))
@@ -37,6 +38,11 @@ def log_validation_performance(_run, val_loss, val_accuracy):
     _run.result = float(val_accuracy)
 
 
+@ex.capture
+def log_lr(_run, lr):
+    _run.log_scalar("lr", float(lr))
+
+
 class LogPerformance(Callback):
     def __init__(self, model, gui_callback, data_generator, bs):
         super().__init__()
@@ -59,6 +65,11 @@ class LogPerformance(Callback):
         log_training_performance_batch(loss=logs.get("loss"), accuracy=logs.get("acc"))
 
     def on_epoch_end(self, epoch, logs={}):
+        lr = self.model.optimizer.lr
+        decay = self.model.optimizer.decay
+        iterations = self.model.optimizer.iterations
+        lr_with_decay = lr / (1. + decay * K.cast(iterations, K.dtype(decay)))
+        log_lr(lr=K.eval(lr_with_decay))
         log_training_performance_epoch(loss=logs.get("loss"), accuracy=logs.get("acc"))
         log_validation_performance(val_loss=logs.get("val_loss"), val_accuracy=logs.get("val_acc"))
 
@@ -106,6 +117,16 @@ def get_model(input_size, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
 
 
 @ex.capture
+def get_model_config_settings(l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
+    return {
+        "l1fc": l1fc, "l1fs": l1fs,
+        "l2fc": l2fc, "l2fs": l2fs,
+        "l3fc": l3fc, "l3fs": l3fs,
+        "eac_size": eac_size
+    }
+
+
+@ex.capture
 def train(gui_callback, input_size, bs, lr, lr_decay, image_folders, epochs):
     optimizer = Adam(lr, decay=lr_decay)
     model = get_model()
@@ -114,6 +135,8 @@ def train(gui_callback, input_size, bs, lr, lr_decay, image_folders, epochs):
     data_generator = UnsharpTrainingDataGenerator(image_folders, batch_size=bs, target_size=input_size)
     data_generator.on_epoch_end()
     validation_data_provider = UnsharpValidationDataProvider("validation_data", batch_size=bs, target_size=input_size)
+    with open('unsharpDetectorSettings.json', 'w') as json_file:
+        json_file.write(json.dumps(get_model_config_settings()))
     model.fit_generator(generator=data_generator,
                         validation_data=validation_data_provider,
                         callbacks=[ModelCheckpoint("unsharpDetectorWeights.hdf5", monitor='val_loss',
