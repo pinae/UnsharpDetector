@@ -17,8 +17,8 @@ def laplacian_group_initializer(shape, dtype=None):
     if np.random.random() < 0.5 and kernel.shape[1] >= 3 and len(kernel.shape) == 2:
         kernel[int(kernel.shape[0] // 2), int(kernel.shape[1] // 2) - 1] = 1
         kernel[int(kernel.shape[0] // 2), int(kernel.shape[1] // 2) + 1] = 1
-    kernel[tuple(map(lambda x: int(np.floor(x / 2)), kernel.shape))] = np.sum(kernel)
-    return kernel + np.random.randn(*shape) * 0.1
+    kernel[tuple(map(lambda x: int(np.floor(x / 2)), kernel.shape))] = -np.sum(kernel)
+    return kernel + np.random.normal(0.0, 0.005, shape) * 1.0
 
 
 def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
