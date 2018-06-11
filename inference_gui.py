@@ -3,9 +3,31 @@
 from __future__ import division, print_function, unicode_literals
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout
-from PyQt5.QtWidgets import QPushButton, QLabel, QFileDialog
+from PyQt5.QtWidgets import QPushButton, QLabel, QFileDialog, QSplitter
 from PyQt5.QtGui import QImage
 import sys
+
+
+class ThumbnailList(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        slider_label = QLabel()
+        slider_label.setText("Thumbnailgröße:")
+        layout.addWidget(slider_label, alignment=Qt.AlignLeading)
+        layout.addStretch()
+        self.setLayout(layout)
+
+
+class PreviewArea(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        selection_label = QLabel()
+        selection_label.setText("Dieses Bild")
+        layout.addWidget(selection_label, alignment=Qt.AlignLeading)
+        layout.addStretch()
+        self.setLayout(layout)
 
 
 class InferenceInterface(QWidget):
@@ -25,6 +47,13 @@ class InferenceInterface(QWidget):
         path_row.addWidget(self.path_label, alignment=Qt.AlignLeading)
         path_row.addStretch()
         main_layout.addLayout(path_row)
+        image_splitter = QSplitter()
+        image_splitter.setOrientation(Qt.Horizontal)
+        thumbnail_list = ThumbnailList()
+        image_splitter.addWidget(thumbnail_list)
+        preview_area = PreviewArea()
+        image_splitter.addWidget(preview_area)
+        main_layout.addWidget(image_splitter)
         self.setLayout(main_layout)
         self.show()
 
