@@ -36,8 +36,6 @@ class EdgeAndCenterExtractionLayer(Layer):
         return K.reshape(K.concatenate([l1, l2, l3], axis=2), (batch_size, 4 * self.w, 4 * self.w, channel_count))
 
     def compute_output_shape(self, input_shape):
-        print(input_shape)
-        print((input_shape[0], self.w * 4, self.w * 4, input_shape[3]))
         return input_shape[0], self.w * 4, self.w * 4, input_shape[3]
 
 
