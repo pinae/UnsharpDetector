@@ -78,8 +78,8 @@ class LogPerformance(Callback):
 def config():
     input_size = (256, 256)
     bs = 12
-    lr = 0.0001
-    lr_decay = 0.0002
+    lr = 0.001
+    lr_decay = 0.005
     l1fc = 32
     l1fs = (9, 9)
     l2fc = 32
