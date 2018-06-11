@@ -3,10 +3,11 @@
 from __future__ import division, print_function, unicode_literals
 from pymongo import MongoClient
 from time import sleep
+from secret_settings import mongo_url, db_name
 import argparse
 
-client = MongoClient()
-db = client.sacred
+client = MongoClient(host=mongo_url)
+db = client[db_name]
 running_experiments = []
 
 
