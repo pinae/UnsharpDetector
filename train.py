@@ -152,7 +152,7 @@ def run(use_gui):
     gui_thread = None
     gui_callback = None
     if use_gui:
-        from gui import init_gui
+        from training_gui import init_gui
         gui_callback, feedback_queue, gui_thread = init_gui()
     train(gui_callback)
     if gui_thread:

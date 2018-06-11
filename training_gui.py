@@ -12,7 +12,7 @@ import numpy as np
 
 class TrainingPreview(QWidget):
     def __init__(self, feedback_queue):
-        super().__init__()
+        super(TrainingPreview).__init__()
         self.feedback_queue = feedback_queue
         self.setWindowTitle("Training preview")
         self.resize(4 * 256, 3 * 276)
