@@ -7,6 +7,7 @@ from PyQt5.QtGui import QImage, QPainter, QPixmap, QFont, QColor
 from PyQt5.QtCore import QRect, Qt
 from threading import Thread
 from queue import Queue
+from visualization_helpers import convert_image
 import numpy as np
 
 
@@ -18,7 +19,7 @@ class TrainingPreview(QWidget):
         self.resize(4 * 256, 3 * 276)
         self.setMinimumWidth(256)
         self.pixmaps = [QPixmap(QImage(
-            self.convert_image(np.zeros((256, 256, 3), dtype=np.float32)),
+            convert_image(np.zeros((256, 256, 3), dtype=np.float32)),
             256, 256, QImage.Format_RGB32))]
         self.labels = [{"color": QColor(0, 255, 0)}]
         self.predictions = [{"color": QColor(128, 128, 0)}]
@@ -74,7 +75,7 @@ class TrainingPreview(QWidget):
         self.labels = []
         self.predictions = []
         for i, img in enumerate(images):
-            qimage = QImage(self.convert_image(img * 255), img.shape[0], img.shape[1], QImage.Format_RGB32)
+            qimage = QImage(convert_image(img * 255), img.shape[0], img.shape[1], QImage.Format_RGB32)
             self.pixmaps.append(QPixmap().fromImage(qimage, flags=(Qt.AutoColor | Qt.DiffuseDither)).copy())
             self.labels.append({
                 "color": QColor(int(labels[i][0] * 255), int(labels[i][1] * 255), 0)
@@ -83,16 +84,6 @@ class TrainingPreview(QWidget):
                 "color": QColor(int(predictions[i][0] * 255), int(predictions[i][1] * 255), 0)
             })
         self.update()
-
-    @staticmethod
-    def convert_image(numpy_array):
-        return np.left_shift(
-            np.left_shift(
-                np.left_shift(
-                    np.zeros((numpy_array.shape[0], numpy_array.shape[1]), dtype=np.uint32) + 0xff,
-                    8) + numpy_array[:, :, 0].astype(np.uint32),
-                8) + numpy_array[:, :, 1].astype(np.uint32),
-            8) + numpy_array[:, :, 2].astype(np.uint32)
 
 
 def run_gui(feedback_queue):
