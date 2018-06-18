@@ -16,13 +16,21 @@ class ImageWidget(QWidget):
     def __init__(self, img_pixmap):
         super().__init__()
         self.img = img_pixmap
-        self.setMinimumWidth(self.img.width())
-        self.setMaximumHeight(self.img.height())
-        self.rect = QRect(0, 0, self.img.width(), self.img.height())
+        if self.img:
+            print(self.img.size())
+            self.setMinimumWidth(self.img.width())
+            self.setMinimumHeight(self.img.height())
+            self.rect = QRect(0, 0, self.img.width(), self.img.height())
+            print(self.rect.size())
+        else:
+            self.rect = QRect(0, 0, 20, 20)
         print(self.size())
 
     def minimumSizeHint(self):
-        return QSize(self.img.width(), self.img.height())
+        if self.img:
+            return QSize(self.img.width(), self.img.height())
+        else:
+            return QSize(20, 20)
 
     def sizeHint(self):
         return self.minimumSizeHint()
@@ -39,10 +47,12 @@ class ImageWidget(QWidget):
         #size = self.size()
         #w = size.width()
         #h = size.height()
-        qp.drawPixmap(self.rect,
-                      self.img, self.rect)
         qp.setBrush(QColor(255, 0, 255))
+        qp.setPen(QColor(255, 128, 0))
         qp.drawRect(self.rect)
+        if self.img:
+            qp.drawPixmap(self.rect,
+                          self.img, self.rect)
 
 
 class ThumbnailList(QWidget):
@@ -51,6 +61,7 @@ class ThumbnailList(QWidget):
     def __init__(self):
         super().__init__()
         self.images = []
+        self.selected = 0
         size_policy = QSizePolicy()
         size_policy.setVerticalPolicy(QSizePolicy.MinimumExpanding)
         self.setSizePolicy(size_policy)
@@ -58,6 +69,7 @@ class ThumbnailList(QWidget):
         size_row = QHBoxLayout()
         slider_label = QLabel()
         slider_label.setText("Thumbnailgröße:")
+        slider_label.setMinimumHeight(12)
         size_row.addWidget(slider_label, alignment=Qt.AlignLeading)
         layout.addLayout(size_row)
         self.t_list = QVBoxLayout()
@@ -67,21 +79,24 @@ class ThumbnailList(QWidget):
 
     def load_images(self, path):
         self.images = []
+        self.selected = 0
         filename_regex = re.compile(r".*\.(jpg|JPG|jpeg|JPEG|png|PNG|bmp|BMP)$")
         for filename in os.listdir(path):
             if filename_regex.match(filename):
                 np_img = imread(os.path.join(path, filename))
-                qimage = QImage(convert_image(np_img * 255), np_img.shape[0], np_img.shape[1], QImage.Format_RGB32)
+                qimage = QImage(convert_image(np_img), np_img.shape[0], np_img.shape[1], QImage.Format_RGB32)
                 self.images.append({
                     'thumb': qimage.scaledToWidth(128),
                     'np_img': np_img,
                     'qimage': qimage,
                     'filename': os.path.join(path, filename)})
         self.update_list()
+        if len(self.images) > 0:
+            self.imgSelected.emit(self.images[0])
 
     def update_list(self):
         while self.t_list.count() > 0:
-            item = self.list_layout.takeAt(self.list_layout.count()-1)
+            item = self.t_list.takeAt(self.t_list.count()-1)
             if type(item) == QWidgetItem:
                 item.widget().deleteLater()
             else:
@@ -89,11 +104,11 @@ class ThumbnailList(QWidget):
         for img_data in self.images:
             img_line = QHBoxLayout()
             checkbox = QCheckBox()
+            checkbox.setText(".")
             img_line.addWidget(checkbox, alignment=Qt.AlignLeading)
-            image = ImageWidget(QPixmap().fromImage(img_data['thumb'], flags=(Qt.AutoColor | Qt.DiffuseDither)))
+            image = ImageWidget(QPixmap.fromImage(img_data['thumb'], flags=(Qt.AutoColor | Qt.DiffuseDither)))
             img_line.addWidget(image, alignment=Qt.AlignLeading)
             self.t_list.addLayout(img_line)
-        self.t_list.addStretch()
         self.update()
 
 
@@ -108,11 +123,14 @@ class PreviewArea(QWidget):
         selection_label = QLabel()
         selection_label.setText("Dieses Bild")
         layout.addWidget(selection_label, alignment=Qt.AlignLeading)
+        self.img_widget = ImageWidget(None)
+        layout.addWidget(self.img_widget, alignment=Qt.AlignLeading)
         layout.addStretch()
         self.setLayout(layout)
 
     def set_image(self, img_d):
-        pass
+        self.img_widget = ImageWidget(QPixmap.fromImage(img_d['qimage'], flags=(Qt.AutoColor | Qt.DiffuseDither)))
+        self.update()
 
 
 class InferenceInterface(QWidget):
@@ -162,7 +180,6 @@ class InferenceInterface(QWidget):
             self.path_label.setText("Kein Pfad ausgewählt.")
 
     def img_selected(self, img_d):
-        print(img_d)
         self.preview_area.set_image(img_d)
 
 
