@@ -25,9 +25,9 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
                                Qt.SquareCap, Qt.RoundJoin))
                 lines_to_draw = []
                 len_of_all_lines = 2 * (mid.get_thumb().height() + mid.get_thumb().width() + 12)
-                line_start_pos = -1 * min(0, mid.get_animation_progress()) * len_of_all_lines
-                if mid.get_animation_progress() >= 0:
-                    line_end_pos = mid.get_animation_progress() * len_of_all_lines
+                line_start_pos = -1 * min(0, mid.animation_progress) * len_of_all_lines
+                if mid.animation_progress >= 0:
+                    line_end_pos = mid.animation_progress * len_of_all_lines
                 else:
                     line_end_pos = 1 * len_of_all_lines
                 tx = style_option_view_item.rect.left() + 2
@@ -101,27 +101,13 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
         y_in_delegate = event.pos().y() - style_option_view_item.rect.top()
         thumb_w = model_index.data().get_thumb().width()
         thumb_h = model_index.data().get_thumb().height()
-        if event.button() == Qt.NoButton and 2 < x_in_delegate < 2 + thumb_w and 2 < y_in_delegate < 2 + thumb_h:
+        if event.button() == Qt.NoButton:
             model.reset_whole_list()
-            model_index.data().set_show_buttons(True)
+            if 4 < x_in_delegate < 4 + thumb_w and 4 < y_in_delegate < 4 + thumb_h:
+                model_index.data().set_show_buttons(True)
         elif event.button() == Qt.LeftButton:
             if 9 <= x_in_delegate <= 39 and thumb_h - 30 <= y_in_delegate <= thumb_h:
                 model_index.data().set_manual(False)
             elif thumb_w - 30 <= x_in_delegate <= thumb_w and thumb_h - 30 <= y_in_delegate <= thumb_h:
                 model_index.data().set_manual(True)
         return super().editorEvent(event, model, style_option_view_item, model_index)
-
-    def createEditor(self, parent, style_option_view_item, model_index):
-        print("called createEditor")
-        print(parent)
-        return super().createEditor(parent, style_option_view_item, model_index)
-
-    def commitData(self, editor):
-        print("called commitData")
-        print(editor)
-        return super().commitData(editor)
-
-    def setEditorData(self, editor, model_index):
-        print("called setEditorData")
-        print(editor)
-        return super().setEditorData(editor, model_index)

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
-from PyQt5.QtCore import Qt, QAbstractListModel
+from PyQt5.QtCore import Qt, QAbstractListModel, QModelIndex
 
 
 class GenericListModel(QAbstractListModel):
@@ -22,6 +22,8 @@ class GenericListModel(QAbstractListModel):
     def append(self, item):
         item.data_changed.connect(self.data_changed)
         self.list.append(item)
+        new_index = self.createIndex(len(self.list), 0, item)
+        self.dataChanged.emit(new_index, new_index, [Qt.EditRole])
 
     def data_changed(self, item):
         model_index = self.createIndex(self.list.index(item), 0, item)
@@ -34,3 +36,9 @@ class GenericListModel(QAbstractListModel):
     def reset_whole_list(self):
         for item in self.list:
             item.reset()
+
+    def clear(self):
+        self.list = []
+
+    def is_empty(self):
+        return len(self.list) <= 0

@@ -3,10 +3,13 @@
 from __future__ import division, print_function, unicode_literals
 from PyQt5.QtCore import Qt, QRect, pyqtSignal, QSize
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QSizePolicy
-from PyQt5.QtWidgets import QPushButton, QLabel, QFileDialog, QSplitter, QCheckBox, QScrollArea
-from PyQt5.QtGui import QImage, QPainter, QColor
+from PyQt5.QtWidgets import QPushButton, QLabel, QFileDialog, QSplitter, QScrollArea
+from PyQt5.QtWidgets import QListView
+from PyQt5.QtGui import QPainter, QColor
 from skimage.io import imread
-from visualization_helpers import convert_image
+from extended_qt_delegate import ImageableStyledItemDelegate
+from generic_list_model import GenericListModel
+from classified_image_datatype import ClassifiedImageBundle
 import sys
 import os
 import re
@@ -60,12 +63,13 @@ class ImageWidget(QWidget):
 
 
 class ThumbnailList(QWidget):
-    imgSelected = pyqtSignal(dict)
+    imgSelected = pyqtSignal(ClassifiedImageBundle)
 
     def __init__(self):
         super().__init__()
-        self.images = []
+        self.images_list = GenericListModel()
         self.selected = 0
+        self.thumb_width = 128
         size_policy = QSizePolicy()
         size_policy.setVerticalPolicy(QSizePolicy.MinimumExpanding)
         self.setSizePolicy(size_policy)
@@ -77,55 +81,30 @@ class ThumbnailList(QWidget):
         slider_label.setMinimumHeight(12)
         size_row.addWidget(slider_label, alignment=Qt.AlignLeading)
         self.layout.addLayout(size_row)
-        self.t_list = QVBoxLayout()
-        self.lines = []
-        for _ in range(8):
-            self.add_empty_line()
-        self.layout.addLayout(self.t_list, stretch=1)
+        self.t_list = QListView()
+        self.t_list.setMinimumWidth(self.thumb_width)
+        self.t_list.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Expanding))
+        self.t_list.setMouseTracking(True)
+        self.t_list.setItemDelegate(ImageableStyledItemDelegate(parent=self.t_list))
+        self.t_list.setSpacing(1)
+        self.t_list.setModel(self.images_list)
+        self.layout.addWidget(self.t_list, stretch=1)
         self.setLayout(self.layout)
 
     def load_images(self, path):
-        self.images = []
+        self.images_list.clear()
         self.selected = 0
         filename_regex = re.compile(r".*\.(jpg|JPG|jpeg|JPEG|png|PNG|bmp|BMP)$")
         for filename in os.listdir(path):
             if filename_regex.match(filename):
                 np_img = imread(os.path.join(path, filename))
-                qimage = QImage(convert_image(np_img), np_img.shape[1], np_img.shape[0], QImage.Format_RGB32)
-                self.images.append({
-                    'thumb': qimage.scaledToWidth(128),
-                    'np_img': np_img,
-                    'qimage': qimage,
-                    'filename': os.path.join(path, filename)})
-        self.update_list()
-        if len(self.images) > 0:
-            self.imgSelected.emit(self.images[0])
-
-    def update_list(self):
-        while len(self.lines) < len(self.images):
-            self.add_empty_line()
-        for i, img_data in enumerate(self.images):
-            self.lines[i]['checkbox'].setVisible(True)
-            self.lines[i]['image_widget'].set_img(img_data['thumb'])
-            self.lines[i]['image_widget'].setMinimumSize(img_data['thumb'].size())
-            self.lines[i]['image_widget'].setFixedSize(img_data['thumb'].size())
-            self.lines[i]['image_widget'].setVisible(True)
-            self.lines[i]['image_widget'].updateGeometry()
-        for i in range(len(self.lines), len(self.images)):
-            self.lines[i]['checkbox'].setVisible(False)
-            self.lines[i]['image_widget'].setVisible(False)
-        self.t_list.update()
-        self.updateGeometry()
-
-    def add_empty_line(self):
-        img_line = QHBoxLayout()
-        checkbox = QCheckBox()
-        img_line.addWidget(checkbox)
-        img_wid = ImageWidget(None)
-        img_wid.setFixedSize(QSize(128, 128))
-        img_line.addWidget(img_wid)
-        self.lines.append({'checkbox': checkbox, 'image_widget': img_wid})
-        self.t_list.addLayout(img_line)
+                img_bundle = ClassifiedImageBundle()
+                img_bundle.set_np_image(np_img, self.thumb_width)
+                self.images_list.append(img_bundle)
+        self.t_list.setMinimumWidth(self.thumb_width)
+        self.t_list.updateGeometry()
+        if not self.images_list.is_empty():
+            self.imgSelected.emit(self.images_list.data_by_int_index(0))
 
 
 class PreviewArea(QWidget):
@@ -152,7 +131,7 @@ class PreviewArea(QWidget):
         self.setLayout(layout)
 
     def set_image(self, img_d):
-        self.img_widget.set_img(img_d['qimage'])
+        self.img_widget.set_img(img_d.get_image())
         self.update()
 
 
@@ -177,10 +156,7 @@ class InferenceInterface(QWidget):
         image_splitter.setOrientation(Qt.Horizontal)
         self.thumbnail_list = ThumbnailList()
         self.thumbnail_list.imgSelected.connect(self.img_selected)
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(self.thumbnail_list)
-        scroll_area.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
-        image_splitter.addWidget(scroll_area)
+        image_splitter.addWidget(self.thumbnail_list)
         self.preview_area = PreviewArea()
         image_splitter.addWidget(self.preview_area)
         image_splitter.setSizes([176, self.width()-176])
