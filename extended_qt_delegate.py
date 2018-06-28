@@ -3,7 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 from PyQt5.QtCore import Qt, QSize, QLineF
 from PyQt5.QtWidgets import QStyledItemDelegate
-from PyQt5.QtGui import QPen, QBrush, QPainter
+from PyQt5.QtGui import QPen, QBrush, QPainter, QColor
 from classified_image_datatype import ClassifiedImageBundle
 
 
@@ -55,6 +55,36 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
                                                 tx + w - (min(line_end_pos - 2 * h - w, w)),
                                                 ty))
                 qp.drawLines(lines_to_draw)
+            if mid.get_show_buttons():
+                qp.setBrush(QColor(255, 0, 0))
+                qp.setPen(QPen(QBrush(QColor(255, 0, 0)), 1.0, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+                qp.drawEllipse(style_option_view_item.rect.left() + 8,
+                               style_option_view_item.rect.top() + mid.get_thumb().height() - 30,
+                               30, 30)
+                qp.setBrush(QColor(0, 255, 0))
+                qp.setPen(QPen(QBrush(QColor(0, 255, 0)), 1.0, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+                qp.drawEllipse(style_option_view_item.rect.left() + mid.get_thumb().width() - 30,
+                               style_option_view_item.rect.top() + mid.get_thumb().height() - 30,
+                               30, 30)
+                qp.setPen(QPen(QBrush(QColor(255, 255, 255)), 6.0, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+                qp.drawLines([
+                    QLineF(style_option_view_item.rect.left() + mid.get_thumb().width() - 24,
+                           style_option_view_item.rect.top() + mid.get_thumb().height() - 13,
+                           style_option_view_item.rect.left() + mid.get_thumb().width() - 19,
+                           style_option_view_item.rect.top() + mid.get_thumb().height() - 8),
+                    QLineF(style_option_view_item.rect.left() + mid.get_thumb().width() - 19,
+                           style_option_view_item.rect.top() + mid.get_thumb().height() - 8,
+                           style_option_view_item.rect.left() + mid.get_thumb().width() - 7,
+                           style_option_view_item.rect.top() + mid.get_thumb().height() - 20)
+                ])
+                qp.drawLine(style_option_view_item.rect.left() + 16,
+                            style_option_view_item.rect.top() + mid.get_thumb().height() - 22,
+                            style_option_view_item.rect.left() + 30,
+                            style_option_view_item.rect.top() + mid.get_thumb().height() - 8)
+                qp.drawLine(style_option_view_item.rect.left() + 16,
+                            style_option_view_item.rect.top() + mid.get_thumb().height() - 8,
+                            style_option_view_item.rect.left() + 30,
+                            style_option_view_item.rect.top() + mid.get_thumb().height() - 22)
             qp.restore()
         else:
             super().paint(qp, style_option_view_item, model_index)
@@ -67,9 +97,18 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
             return super().sizeHint(style_option_view_item, model_index)
 
     def editorEvent(self, event, model, style_option_view_item, model_index):
-        print("called editorEvent")
-        print(event)
-        print(model)
+        x_in_delegate = event.pos().x() - style_option_view_item.rect.left()
+        y_in_delegate = event.pos().y() - style_option_view_item.rect.top()
+        thumb_w = model_index.data().get_thumb().width()
+        thumb_h = model_index.data().get_thumb().height()
+        if event.button() == Qt.NoButton and 2 < x_in_delegate < 2 + thumb_w and 2 < y_in_delegate < 2 + thumb_h:
+            model.reset_whole_list()
+            model_index.data().set_show_buttons(True)
+        elif event.button() == Qt.LeftButton:
+            if 9 <= x_in_delegate <= 39 and thumb_h - 30 <= y_in_delegate <= thumb_h:
+                model_index.data().set_manual(False)
+            elif thumb_w - 30 <= x_in_delegate <= thumb_w and thumb_h - 30 <= y_in_delegate <= thumb_h:
+                model_index.data().set_manual(True)
         return super().editorEvent(event, model, style_option_view_item, model_index)
 
     def createEditor(self, parent, style_option_view_item, model_index):

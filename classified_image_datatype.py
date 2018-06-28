@@ -19,6 +19,7 @@ class ClassifiedImageBundle(QObject):
         self.status = ClassifiedImageBundle.UNDECIDED
         self.color = None
         self.keep = None
+        self.show_buttons = False
         self.animation_progress = 1.0
         self.ani = QSequentialAnimationGroup()
         self.init_animation()
@@ -80,6 +81,13 @@ class ClassifiedImageBundle(QObject):
             self.ani.stop()
             self.animation_progress = 1.0
 
+    def set_show_buttons(self, button_state=False):
+        self.show_buttons = button_state
+        self.data_changed.emit(self)
+
+    def get_show_buttons(self):
+        return self.show_buttons
+
     def get_thumb(self):
         return self.thumb
 
@@ -101,3 +109,6 @@ class ClassifiedImageBundle(QObject):
     def is_classified(self):
         return self.status in [ClassifiedImageBundle.CLASSIFIED,
                                ClassifiedImageBundle.PROGRESS]
+
+    def reset(self):
+        self.set_show_buttons(False)
