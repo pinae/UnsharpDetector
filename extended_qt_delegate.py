@@ -20,7 +20,9 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
             qp.setRenderHint(QPainter.Antialiasing)
             qp.setRenderHint(QPainter.HighQualityAntialiasing)
             if mid.has_color():
-                qp.setPen(QPen(QBrush(mid.get_color()), 4.0, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+                qp.setPen(QPen(QBrush(mid.get_color()), 4.0,
+                               Qt.DotLine if mid.is_classified() else Qt.SolidLine,
+                               Qt.SquareCap, Qt.RoundJoin))
                 lines_to_draw = []
                 len_of_all_lines = 2 * (mid.get_thumb().height() + mid.get_thumb().width() + 12)
                 line_start_pos = -1 * min(0, mid.get_animation_progress()) * len_of_all_lines

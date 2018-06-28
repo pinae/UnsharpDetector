@@ -29,7 +29,7 @@ class ClassifiedImageBundle(QObject):
 
     def init_animation(self):
         ani1 = QPropertyAnimation(self, b"animation_progress")
-        ani1.setDuration(1700)
+        ani1.setDuration(3700)
         ani1.setEasingCurve(QEasingCurve.InOutQuad)
         ani1.setStartValue(-0.001)
         ani1.setEndValue(-1.0)
@@ -97,3 +97,7 @@ class ClassifiedImageBundle(QObject):
 
     def get_animation_progress(self):
         return self.animation_progress
+
+    def is_classified(self):
+        return self.status in [ClassifiedImageBundle.CLASSIFIED,
+                               ClassifiedImageBundle.PROGRESS]
