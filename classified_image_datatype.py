@@ -66,6 +66,7 @@ class ClassifiedImageBundle(QObject):
         self.status = ClassifiedImageBundle.PROGRESS
         self.color = QColor(148, 148, 255)
         self.ani.start()
+        self.data_changed.emit(self)
 
     def set_manual(self, decision):
         self.keep = decision
@@ -76,6 +77,7 @@ class ClassifiedImageBundle(QObject):
             self.color = QColor(255, 0, 0)
         self.ani.stop()
         self._animation_progress = 1.0
+        self.data_changed.emit(self)
 
     def set_classification(self, result):
         if self.status != ClassifiedImageBundle.MANUAL:
@@ -84,6 +86,7 @@ class ClassifiedImageBundle(QObject):
             self.color = QColor(int(result[1] * 255), int(result[0] * 255), 0)
             self.ani.stop()
             self._animation_progress = 1.0
+            self.data_changed.emit(self)
 
     def set_show_buttons(self, button_state=False):
         self.show_buttons = button_state
@@ -98,6 +101,9 @@ class ClassifiedImageBundle(QObject):
     def get_image(self):
         return self.img
 
+    def get_np_array(self):
+        return self.np_array
+
     def has_color(self):
         return self.color is not None and \
                self.status in [ClassifiedImageBundle.CLASSIFIED,
@@ -110,6 +116,9 @@ class ClassifiedImageBundle(QObject):
     def is_classified(self):
         return self.status in [ClassifiedImageBundle.CLASSIFIED,
                                ClassifiedImageBundle.PROGRESS]
+
+    def is_undecided(self):
+        return self.status == ClassifiedImageBundle.UNDECIDED
 
     def reset(self):
         self.set_show_buttons(False)

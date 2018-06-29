@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QListView
 from PyQt5.QtGui import QPainter, QColor
 from skimage.io import imread
 from extended_qt_delegate import ImageableStyledItemDelegate
-from generic_list_model import GenericListModel
+from inferencing_list import InferencingList
 from classified_image_datatype import ClassifiedImageBundle
 import sys
 import os
@@ -60,7 +60,7 @@ class ThumbnailList(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.images_list = GenericListModel()
+        self.images_list = InferencingList()
         self.selected = 0
         self.thumb_width = 128
         size_policy = QSizePolicy()
@@ -101,6 +101,9 @@ class ThumbnailList(QWidget):
 
     def select_image(self, image_bundle):
         self.img_selected.emit(image_bundle)
+
+    def stop_worker_thread(self):
+        self.images_list.stop_worker_thread()
 
 
 class PreviewArea(QWidget):
@@ -176,6 +179,10 @@ class InferenceInterface(QWidget):
 
     def img_selected(self, img_d):
         self.preview_area.set_image(img_d)
+
+    def closeEvent(self, close_event):
+        self.thumbnail_list.stop_worker_thread()
+        super().closeEvent(close_event)
 
 
 if __name__ == "__main__":
