@@ -81,9 +81,9 @@ class ClassifiedImageBundle(QObject):
 
     def set_classification(self, result):
         if self.status != ClassifiedImageBundle.MANUAL:
-            self.keep = result[0] > result[1]
+            self.keep = result[1] > result[0]
             self.status = ClassifiedImageBundle.CLASSIFIED
-            self.color = QColor(int(result[1] * 255), int(result[0] * 255), 0)
+            self.color = QColor(int(result[0] * 255), int(result[1] * 255), 0)
             self.ani.stop()
             self._animation_progress = 1.0
             self.data_changed.emit(self)
