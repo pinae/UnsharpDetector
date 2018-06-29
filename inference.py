@@ -33,7 +33,7 @@ if __name__ == "__main__":
         if filename_regex.match(filename):
             print("reading " + str(path.join(path.abspath(img_path), filename)))
             data = np.array([
-                imread(path.join(path.abspath(img_path), filename))
+                imread(path.join(path.abspath(img_path), filename)) / 255
             ])
             trained_model = load_model(data.shape[1:])
             print(inference(trained_model, data))
