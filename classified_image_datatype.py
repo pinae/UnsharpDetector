@@ -17,6 +17,7 @@ class ClassifiedImageBundle(QObject):
 
     UNDECIDED, CLASSIFIED, MANUAL, PROGRESS = range(4)
     data_changed = pyqtSignal(QObject)
+    selected = pyqtSignal(QObject)
     animation_progress = pyqtProperty(float, get_animation_progress, set_animation_progress)
 
     def __init__(self, *args):
@@ -112,3 +113,6 @@ class ClassifiedImageBundle(QObject):
 
     def reset(self):
         self.set_show_buttons(False)
+
+    def select(self):
+        self.selected.emit(self)

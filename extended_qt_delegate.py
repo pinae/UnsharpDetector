@@ -105,9 +105,11 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
             model.reset_whole_list()
             if 4 < x_in_delegate < 4 + thumb_w and 4 < y_in_delegate < 4 + thumb_h:
                 model_index.data().set_show_buttons(True)
-        elif event.button() == Qt.LeftButton:
+        elif event.button() == Qt.LeftButton and Qt.LeftButton | event.buttons() == event.buttons():
             if 9 <= x_in_delegate <= 39 and thumb_h - 30 <= y_in_delegate <= thumb_h:
                 model_index.data().set_manual(False)
             elif thumb_w - 30 <= x_in_delegate <= thumb_w and thumb_h - 30 <= y_in_delegate <= thumb_h:
                 model_index.data().set_manual(True)
+            elif 4 < x_in_delegate < 4 + thumb_w and 4 < y_in_delegate < 4 + thumb_h:
+                model_index.data().select()
         return super().editorEvent(event, model, style_option_view_item, model_index)

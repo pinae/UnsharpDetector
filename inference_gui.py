@@ -33,8 +33,7 @@ class ImageWidget(QWidget):
             self.rect = QRect(0, 0, 128, 128)
             self.setFixedSize(QSize(128, 128))
         self.updateGeometry()
-        print("ImageWidget size: " + str(self.size()))
-        print("ImageWidget pos: " + str(self.pos().x()) + ", " + str(self.pos().y()))
+        self.update()
 
     def minimumSizeHint(self):
         if self.img:
@@ -52,18 +51,12 @@ class ImageWidget(QWidget):
         qp.end()
 
     def draw(self, qp):
-        qp.setBrush(QColor(255, 0, 255))
-        qp.setPen(QColor(255, 0, 0))
-        qp.drawRect(self.rect)
         if self.img:
             qp.drawImage(0, 0, self.img)
-        qp.drawLine(0, 0, 0, self.size().height())
-        qp.setPen(QColor(0, 0, 255))
-        qp.drawLine(0, 0, self.size().width(), self.size().height())
 
 
 class ThumbnailList(QWidget):
-    imgSelected = pyqtSignal(ClassifiedImageBundle)
+    img_selected = pyqtSignal(ClassifiedImageBundle)
 
     def __init__(self):
         super().__init__()
@@ -93,18 +86,21 @@ class ThumbnailList(QWidget):
 
     def load_images(self, path):
         self.images_list.clear()
-        self.selected = 0
         filename_regex = re.compile(r".*\.(jpg|JPG|jpeg|JPEG|png|PNG|bmp|BMP)$")
         for filename in os.listdir(path):
             if filename_regex.match(filename):
                 np_img = imread(os.path.join(path, filename))
                 img_bundle = ClassifiedImageBundle()
                 img_bundle.set_np_image(np_img, self.thumb_width)
+                img_bundle.selected.connect(self.select_image)
                 self.images_list.append(img_bundle)
         self.t_list.setMinimumWidth(self.thumb_width)
         self.t_list.updateGeometry()
         if not self.images_list.is_empty():
-            self.imgSelected.emit(self.images_list.data_by_int_index(0))
+            self.img_selected.emit(self.images_list.data_by_int_index(0))
+
+    def select_image(self, image_bundle):
+        self.img_selected.emit(image_bundle)
 
 
 class PreviewArea(QWidget):
@@ -155,7 +151,7 @@ class InferenceInterface(QWidget):
         image_splitter = QSplitter()
         image_splitter.setOrientation(Qt.Horizontal)
         self.thumbnail_list = ThumbnailList()
-        self.thumbnail_list.imgSelected.connect(self.img_selected)
+        self.thumbnail_list.img_selected.connect(self.img_selected)
         image_splitter.addWidget(self.thumbnail_list)
         self.preview_area = PreviewArea()
         image_splitter.addWidget(self.preview_area)
@@ -164,7 +160,6 @@ class InferenceInterface(QWidget):
         main_layout.addWidget(image_splitter)
         self.setLayout(main_layout)
         self.show()
-        self.thumbnail_list.load_images("./validation_data/good/")
 
     def open_path_select_dialog(self):
         dialog = QFileDialog()
