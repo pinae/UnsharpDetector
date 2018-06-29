@@ -13,6 +13,7 @@ from TrainingDataGenerator import UnsharpTrainingDataGenerator
 from ValidationDataProvider import UnsharpValidationDataProvider
 from secret_settings import mongo_url, db_name
 import json
+import os
 
 ex = Experiment("UnsharpDetector")
 ex.observers.append(MongoObserver.create(url=mongo_url, db_name=db_name))
@@ -101,6 +102,7 @@ def config():
     ]
     epochs = 50
     use_gui = True
+    load_weights = False
 
 
 @ex.capture
@@ -127,7 +129,7 @@ def get_model_config_settings(l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
 
 
 @ex.capture
-def train(gui_callback, input_size, bs, lr, lr_decay, image_folders, epochs):
+def train(gui_callback, input_size, bs, lr, lr_decay, image_folders, epochs, load_weights):
     optimizer = Adam(lr, decay=lr_decay)
     model = get_model()
     model.compile(optimizer, loss=categorical_crossentropy, metrics=["accuracy"])
@@ -137,6 +139,10 @@ def train(gui_callback, input_size, bs, lr, lr_decay, image_folders, epochs):
     validation_data_provider = UnsharpValidationDataProvider("validation_data", batch_size=bs, target_size=input_size)
     with open('unsharpDetectorSettings.json', 'w') as json_file:
         json_file.write(json.dumps(get_model_config_settings()))
+    if load_weights and os.path.exists("unsharpDetectorWeights.hdf5"):
+        model.load_weights("unsharpDetectorWeights.hdf5")
+    else:
+        model.save("unsharpDetectorWeights.hdf5", include_optimizer=True)
     model.fit_generator(generator=data_generator,
                         validation_data=validation_data_provider,
                         callbacks=[ModelCheckpoint("unsharpDetectorWeights.hdf5", monitor='val_loss',
