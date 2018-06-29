@@ -71,7 +71,8 @@ class UnsharpTrainingDataGenerator(Sequence):
                     else:
                         fail_counter += 1
                 else:
-                    if np.mean((small_img - gaussian(small_img, sigma=3.0, multichannel=True)) ** 2, axis=None) > 0.00017:
+                    if np.mean((small_img - gaussian(small_img, sigma=3.0, multichannel=True)) ** 2,
+                               axis=None) > 0.00017:
                         acceptable_crop_found = True
                     else:
                         fail_counter += 1
