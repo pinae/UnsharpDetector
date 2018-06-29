@@ -18,7 +18,7 @@ def inferencer(work_queue):
         data.set_progress()
     while running:
         model = load_model(data.get_np_array().shape)
-        prediction = model.predict_on_batch(np.array([data.get_np_array()]))
+        prediction = model.predict(np.array([data.get_np_array() / 255]), batch_size=1)
         print(prediction[0])
         data.set_classification(prediction[0])
         work_queue.task_done()
