@@ -18,6 +18,7 @@ import os
 ex = Experiment("UnsharpDetector")
 ex.observers.append(MongoObserver.create(url=mongo_url, db_name=db_name))
 ex.captured_out_filter = apply_backspaces_and_linefeeds
+last_result = None
 
 
 @ex.capture
@@ -37,6 +38,8 @@ def log_validation_performance(_run, val_loss, val_accuracy):
     _run.log_scalar("validation_loss", float(val_loss))
     _run.log_scalar("validation_accuracy", float(val_accuracy))
     _run.result = float(val_accuracy)
+    global last_result
+    last_result = float(val_accuracy)
 
 
 @ex.capture
@@ -163,3 +166,4 @@ def run(use_gui):
     train(gui_callback)
     if gui_thread:
         gui_thread.join()
+    return last_result
