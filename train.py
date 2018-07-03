@@ -84,6 +84,11 @@ def config():
     bs = 12
     lr = 0.001
     lr_decay = 0.005
+    blur_rate = 0.5
+    mask_rate = 0.2
+    noise_rate = 0.2
+    min_blur = 0.5
+    min_shake = 2.5
     l1fc = 32
     l1fs = (9, 9)
     l2fc = 32
@@ -132,12 +137,15 @@ def get_model_config_settings(l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
 
 
 @ex.capture
-def train(gui_callback, input_size, bs, lr, lr_decay, image_folders, epochs, load_weights):
+def train(gui_callback, input_size, bs, lr, lr_decay, image_folders, epochs, load_weights,
+          blur_rate, mask_rate, noise_rate, min_blur, min_shake):
     optimizer = Adam(lr, decay=lr_decay)
     model = get_model()
     model.compile(optimizer, loss=categorical_crossentropy, metrics=["accuracy"])
     print(model.summary())
-    data_generator = UnsharpTrainingDataGenerator(image_folders, batch_size=bs, target_size=input_size)
+    data_generator = UnsharpTrainingDataGenerator(image_folders, batch_size=bs, target_size=input_size,
+                                                  blur_rate=blur_rate, mask_rate=mask_rate, noise_rate=noise_rate,
+                                                  min_blur=min_blur, min_shake=min_shake)
     data_generator.on_epoch_end()
     validation_data_provider = UnsharpValidationDataProvider("validation_data", batch_size=bs, target_size=input_size)
     with open('unsharpDetectorSettings.json', 'w') as json_file:

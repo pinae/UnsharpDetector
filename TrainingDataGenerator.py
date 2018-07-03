@@ -15,9 +15,15 @@ import re
 
 
 class UnsharpTrainingDataGenerator(Sequence):
-    def __init__(self, image_folders=[], batch_size=10, target_size=(256, 256)):
+    def __init__(self, image_folders=[], batch_size=10, target_size=(256, 256),
+                 blur_rate=0.5, mask_rate=0.2, noise_rate=0.2, min_blur=0.5, min_shake=2.5):
         self.batch_size = batch_size
         self.target_size = target_size
+        self.blur_rate = blur_rate
+        self.mask_rate = mask_rate
+        self.noise_rate = noise_rate
+        self.min_blur = min_blur
+        self.min_shake = min_shake
         filename_regex = re.compile(r".*\.(jpg|JPG|jpeg|JPEG|png|PNG|bmp|BMP)$")
         self.image_filenames = []
         for folder in image_folders:
@@ -51,7 +57,7 @@ class UnsharpTrainingDataGenerator(Sequence):
             min_scale_factor = max(self.target_size[0] / img.shape[0], self.target_size[1] / img.shape[1])
             acceptable_crop_found = False
             fail_counter = 0
-            if random() < 0.5:
+            if random() >= self.blur_rate:
                 one_hot_class = np.array([0, 1], dtype=np.float32)
             else:
                 one_hot_class = np.array([1, 0], dtype=np.float32)
@@ -84,19 +90,21 @@ class UnsharpTrainingDataGenerator(Sequence):
         mode = choice([["blur"], ["shake"], ["blur", "shake"]])
         blurred_img = img
         if "blur" in mode:
-            blurred_img = gaussian(img, sigma=0.5+5.5*random(), multichannel=True)
+            blurred_img = gaussian(img,
+                                   sigma=self.min_blur + max(1.0, (6 - self.min_blur)) * random(),
+                                   multichannel=True)
         if "shake" in mode:
-            blurred_img = self.add_shake(blurred_img)
-        if random() < 0.2:
+            blurred_img = self.add_shake(blurred_img, self.min_shake)
+        if random() < self.mask_rate:
             blurred_img = self.add_mask(blurred_img, img)
-        if random() < 0.2:
+        if random() < self.noise_rate:
             blurred_img = self.add_noise(blurred_img)
         return blurred_img
 
     @staticmethod
-    def add_shake(img):
+    def add_shake(img, min_shake=2.5):
         filter_matrix = np.zeros((9, 9), dtype=img.dtype)
-        shake_len = random()*6.5+2.5
+        shake_len = min_shake + random() * (9 - min_shake)
         filter_matrix[4, 4] = 1.0
         for i in range(1, 5):
             x = (shake_len - i * 2 + 1) / 2
