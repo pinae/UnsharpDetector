@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from keras.models import Model
 from keras.layers import Conv2D, LeakyReLU, Dense, GlobalMaxPool2D, GlobalAveragePooling2D
-from keras.layers import Input, Concatenate, MaxPool2D, AveragePooling2D, Flatten
+from keras.layers import Input, Concatenate, MaxPool2D, AveragePooling2D, Flatten, Add
 from GlobalVarianceLayer import GlobalVarianceLayer
 from VarianceLayer import VarianceLayer
 from EdgeAndCenterExtractionLayer import EdgeAndCenterExtractionLayer
@@ -21,18 +21,27 @@ def laplacian_group_initializer(shape, dtype=None):
     return kernel + np.random.normal(0.0, 0.005, shape) * 1.0
 
 
-def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
+def create_model(input_shape, l1fc, l1fs, l1st, l2fc, l2fs, l2st, l3fc, l3fs, eac_size, res_c, res_fc, res_fs):
     inp = Input(shape=(input_shape[0], input_shape[1], 3))
-    c1 = Conv2D(l1fc, kernel_size=l1fs, strides=2, use_bias=True, padding="same",
+    c1 = Conv2D(l1fc, kernel_size=l1fs, strides=l1st, use_bias=True, padding="same",
                 data_format="channels_last", kernel_initializer=laplacian_group_initializer)(inp)
     l1 = LeakyReLU(alpha=0.2)(c1)
     eac1 = EdgeAndCenterExtractionLayer(width=eac_size)(l1)
-    c2 = Conv2D(l2fc, kernel_size=l2fs, strides=2, use_bias=True, padding="same",
+    c2 = Conv2D(l2fc, kernel_size=l2fs, strides=l2st, use_bias=True, padding="same",
                 data_format="channels_last")(l1)
     l2 = LeakyReLU(alpha=0.2)(c2)
     eac2 = EdgeAndCenterExtractionLayer(width=eac_size)(l2)
     c3 = Conv2D(l3fc, kernel_size=l3fs, strides=1, use_bias=True, padding="same",
                 data_format="channels_last")(l2)
+    last_layer = c3
+    prev_layer = None
+    for i in range(res_c):
+        res_act = LeakyReLU(alpha=0.2)(last_layer)
+        if prev_layer is not None:
+            res_act = Add()([res_act, prev_layer])
+        prev_layer = last_layer
+        last_layer = Conv2D(res_fc, kernel_size=res_fs, strides=1, use_bias=True, padding="same",
+                            data_format="channels_last")(res_act)
     eac3 = EdgeAndCenterExtractionLayer(width=eac_size)(c3)
     eac3_max_grid = MaxPool2D((eac_size, eac_size), strides=eac_size,
                               padding="valid", data_format="channels_last")(eac3)
@@ -64,6 +73,23 @@ def create_model(input_shape, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
                 Flatten()(eac3_max_grid),
                 Flatten()(eac3_avg_grid)
                 ]
+    if res_c > 0:
+        res_eac = EdgeAndCenterExtractionLayer(width=eac_size)(last_layer)
+        features.append(GlobalVarianceLayer()(last_layer))
+        features.append(GlobalMaxPool2D()(last_layer))
+        features.append(GlobalAveragePooling2D()(last_layer))
+        features.append(GlobalVarianceLayer()(res_eac))
+        features.append(GlobalMaxPool2D()(res_eac))
+        features.append(GlobalAveragePooling2D()(res_eac))
+        features.append(Flatten()(VarianceLayer((eac_size, eac_size))(res_eac)))
+        res_eac_max_grid = MaxPool2D((eac_size, eac_size), strides=eac_size,
+                                     padding="valid", data_format="channels_last")(res_eac)
+        res_eac_avg_grid = AveragePooling2D((eac_size, eac_size), strides=eac_size,
+                                            padding="valid", data_format="channels_last")(res_eac)
+        features.append(GlobalVarianceLayer()(res_eac_max_grid))
+        features.append(GlobalVarianceLayer()(res_eac_avg_grid))
+        features.append(Flatten()(res_eac_max_grid))
+        features.append(Flatten()(res_eac_avg_grid))
     feature_vector = Concatenate()(features)
     o = Dense(2, activation="softmax", use_bias=True, name="output")(feature_vector)
     return Model(inputs=inp, outputs=o)

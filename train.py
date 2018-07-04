@@ -82,7 +82,7 @@ class LogPerformance(Callback):
 def config():
     input_size = (256, 256)
     bs = 12
-    lr = 0.001
+    lr = 0.002
     lr_decay = 0.005
     blur_rate = 0.5
     mask_rate = 0.2
@@ -91,11 +91,16 @@ def config():
     min_shake = 2.5
     l1fc = 32
     l1fs = (9, 9)
+    l1st = 2
     l2fc = 32
     l2fs = (3, 3)
+    l2st = 2
     l3fc = 32
     l3fs = (3, 3)
-    eac_size = 8
+    res_c = 0
+    res_fc = 32
+    res_fs = (3, 3)
+    eac_size = 16
     image_folders = [
         "../../Bilder/gesammelte Landschaftsbilder/",
         "../../Bilder/kleine Landschaftsbilder/",
@@ -122,17 +127,18 @@ def validate(model, x, y, bs):
 
 
 @ex.capture
-def get_model(input_size, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
-    return create_model(input_size, l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size)
+def get_model(input_size, l1fc, l1fs, l1st, l2fc, l2fs, l2st, l3fc, l3fs, eac_size, res_c, res_fc, res_fs):
+    return create_model(input_size, l1fc, l1fs, l1st, l2fc, l2fs, l2st, l3fc, l3fs, eac_size, res_c, res_fc, res_fs)
 
 
 @ex.capture
-def get_model_config_settings(l1fc, l1fs, l2fc, l2fs, l3fc, l3fs, eac_size):
+def get_model_config_settings(l1fc, l1fs, l1st, l2fc, l2fs, l2st, l3fc, l3fs, eac_size, res_c, res_fc, res_fs):
     return {
-        "l1fc": l1fc, "l1fs": l1fs,
-        "l2fc": l2fc, "l2fs": l2fs,
+        "l1fc": l1fc, "l1fs": l1fs, "l1st": l1st,
+        "l2fc": l2fc, "l2fs": l2fs, "l2st": l2st,
         "l3fc": l3fc, "l3fs": l3fs,
-        "eac_size": eac_size
+        "eac_size": eac_size,
+        "res_c": res_c, "res_fc": res_fc, "res_fs": res_fs
     }
 
 
