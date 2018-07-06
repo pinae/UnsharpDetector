@@ -13,10 +13,11 @@ def load_model(input_size):
     with open('unsharpDetectorSettings.json', 'r') as json_file:
         settings = json.load(json_file)
         model = create_model(input_size,
-                             settings["l1fc"], settings["l1fs"],
-                             settings["l2fc"], settings["l2fs"],
+                             settings["l1fc"], settings["l1fs"], settings["l1st"],
+                             settings["l2fc"], settings["l2fs"], settings["l2st"],
                              settings["l3fc"], settings["l3fs"],
-                             settings["eac_size"])
+                             settings["eac_size"],
+                             settings["res_c"], settings["res_fc"], settings["res_fs"])
         model.load_weights("unsharpDetectorWeights.hdf5")
     return model
 

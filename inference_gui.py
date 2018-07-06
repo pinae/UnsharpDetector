@@ -4,7 +4,7 @@ from __future__ import division, print_function, unicode_literals
 from PyQt5.QtCore import Qt, QRect, pyqtSignal, QSize
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QSizePolicy
 from PyQt5.QtWidgets import QPushButton, QLabel, QFileDialog, QSplitter, QScrollArea
-from PyQt5.QtWidgets import QListView
+from PyQt5.QtWidgets import QListView, QRadioButton, QSlider
 from PyQt5.QtGui import QPainter, QColor
 from skimage.io import imread
 from extended_qt_delegate import ImageableStyledItemDelegate
@@ -73,6 +73,15 @@ class ThumbnailList(QWidget):
         slider_label.setText("Thumbnailgröße:")
         slider_label.setMinimumHeight(12)
         size_row.addWidget(slider_label, alignment=Qt.AlignLeading)
+        slider = QSlider()
+        slider.setOrientation(Qt.Horizontal)
+        slider.setMinimum(64)
+        slider.setMaximum(512)
+        size_row.addWidget(slider, alignment=Qt.AlignLeading)
+        self.thumb_size_label = QLabel()
+        size_row.addWidget(self.thumb_size_label, alignment=Qt.AlignLeading)
+        slider.valueChanged.connect(self.slider_changed)
+        slider.setValue(self.thumb_width)
         self.layout.addLayout(size_row)
         self.t_list = QListView()
         self.t_list.setMinimumWidth(self.thumb_width)
@@ -90,6 +99,8 @@ class ThumbnailList(QWidget):
         for filename in os.listdir(path):
             if filename_regex.match(filename):
                 np_img = imread(os.path.join(path, filename))
+                if len(np_img.shape) < 2:
+                    continue
                 img_bundle = ClassifiedImageBundle()
                 img_bundle.set_np_image(np_img, self.thumb_width)
                 img_bundle.selected.connect(self.select_image)
@@ -105,6 +116,9 @@ class ThumbnailList(QWidget):
     def stop_worker_thread(self):
         self.images_list.stop_worker_thread()
 
+    def slider_changed(self, value):
+        self.thumb_size_label.setText(str(value))
+
 
 class PreviewArea(QWidget):
     def __init__(self):
@@ -118,8 +132,17 @@ class PreviewArea(QWidget):
         this_row = QHBoxLayout()
         this_row.addSpacing(4)
         selection_label = QLabel()
-        selection_label.setText("Dieses Bild")
+        selection_label.setText("Dieses Bild: ")
         this_row.addWidget(selection_label)
+        keep_button = QRadioButton()
+        keep_button.setText("behalten")
+        keep_button.setMaximumHeight(14)
+        this_row.addWidget(keep_button)
+        discard_button = QRadioButton()
+        discard_button.setText("löschen")
+        discard_button.setMaximumHeight(14)
+        this_row.addWidget(discard_button)
+        this_row.addStretch(1)
         layout.addLayout(this_row)
         img_scroll_area = QScrollArea()
         img_scroll_area.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
@@ -150,6 +173,10 @@ class InferenceInterface(QWidget):
         self.path_label = QLabel()
         path_row.addWidget(self.path_label, alignment=Qt.AlignLeading)
         path_row.addStretch()
+        delete_button = QPushButton()
+        delete_button.setText("Bilder aufräumen")
+        delete_button.setStyleSheet("background-color: #BB0000; color: #FFFFFF; font-weight: bold;")
+        path_row.addWidget(delete_button, alignment=Qt.AlignTrailing)
         main_layout.addLayout(path_row, stretch=0)
         image_splitter = QSplitter()
         image_splitter.setOrientation(Qt.Horizontal)
