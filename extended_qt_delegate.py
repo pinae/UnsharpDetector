@@ -55,7 +55,7 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
                                                 tx + w - (min(line_end_pos - 2 * h - w, w)),
                                                 ty))
                 qp.drawLines(lines_to_draw)
-            if mid.keep or mid.get_show_buttons():
+            if mid.keep or mid.keep is None or mid.get_show_buttons():
                 qp.setBrush(QColor(0, 255, 0))
                 qp.setPen(QPen(QBrush(QColor(0, 255, 0)), 1.0, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
                 qp.drawEllipse(style_option_view_item.rect.left() + mid.get_thumb().width() - 30,
@@ -72,7 +72,7 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
                            style_option_view_item.rect.left() + mid.get_thumb().width() - 7,
                            style_option_view_item.rect.top() + mid.get_thumb().height() - 20)
                 ])
-            if not mid.keep or mid.get_show_buttons():
+            if mid.keep is False or mid.get_show_buttons():
                 qp.setBrush(QColor(255, 0, 0))
                 qp.setPen(QPen(QBrush(QColor(255, 0, 0)), 1.0, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
                 qp.drawEllipse(style_option_view_item.rect.left() + 8,
