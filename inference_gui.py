@@ -80,8 +80,6 @@ class ThumbnailList(QWidget):
         size_row.addWidget(slider, alignment=Qt.AlignLeading)
         self.thumb_size_label = QLabel()
         size_row.addWidget(self.thumb_size_label, alignment=Qt.AlignLeading)
-        slider.valueChanged.connect(self.slider_changed)
-        slider.setValue(self.thumb_width)
         self.layout.addLayout(size_row)
         self.t_list = QListView()
         self.t_list.setMinimumWidth(self.thumb_width)
@@ -91,6 +89,8 @@ class ThumbnailList(QWidget):
         self.t_list.setSpacing(1)
         self.t_list.setModel(self.images_list)
         self.layout.addWidget(self.t_list, stretch=1)
+        slider.valueChanged.connect(self.slider_changed)
+        slider.setValue(self.thumb_width)
         self.setLayout(self.layout)
 
     def load_images(self, path):
@@ -102,6 +102,7 @@ class ThumbnailList(QWidget):
                 if len(np_img.shape) < 2:
                     continue
                 img_bundle = ClassifiedImageBundle()
+                img_bundle.set_filename(os.path.join(path, filename))
                 img_bundle.set_np_image(np_img, self.thumb_width)
                 img_bundle.selected.connect(self.select_image)
                 self.images_list.append(img_bundle)
@@ -113,16 +114,31 @@ class ThumbnailList(QWidget):
     def select_image(self, image_bundle):
         self.img_selected.emit(image_bundle)
 
+    def delete_images(self):
+        for i, bundle in enumerate(self.images_list):
+            if bundle.is_decided() and not bundle.keep and \
+                    bundle.keep is not None and \
+                    bundle.filename is not None:
+                self.images_list.pop(i)
+                os.remove(bundle.filename)
+
     def stop_worker_thread(self):
         self.images_list.stop_worker_thread()
 
     def slider_changed(self, value):
         self.thumb_size_label.setText(str(value))
+        self.thumb_width = value
+        for bundle in self.images_list:
+            bundle.create_thumb(self.thumb_width)
+        self.t_list.setMinimumWidth(self.thumb_width)
+        self.t_list.updateGeometry()
 
 
 class PreviewArea(QWidget):
     def __init__(self):
         super().__init__()
+        self.bundle = None
+        self.manual_change = True
         size_policy = QSizePolicy()
         size_policy.setHorizontalPolicy(QSizePolicy.Expanding)
         size_policy.setVerticalPolicy(QSizePolicy.Expanding)
@@ -134,14 +150,15 @@ class PreviewArea(QWidget):
         selection_label = QLabel()
         selection_label.setText("Dieses Bild: ")
         this_row.addWidget(selection_label)
-        keep_button = QRadioButton()
-        keep_button.setText("behalten")
-        keep_button.setMaximumHeight(14)
-        this_row.addWidget(keep_button)
-        discard_button = QRadioButton()
-        discard_button.setText("löschen")
-        discard_button.setMaximumHeight(14)
-        this_row.addWidget(discard_button)
+        self.keep_button = QRadioButton()
+        self.keep_button.setText("behalten")
+        self.keep_button.setMaximumHeight(14)
+        self.keep_button.toggled.connect(self.mark_bundle)
+        this_row.addWidget(self.keep_button)
+        self.discard_button = QRadioButton()
+        self.discard_button.setText("löschen")
+        self.discard_button.setMaximumHeight(14)
+        this_row.addWidget(self.discard_button)
         this_row.addStretch(1)
         layout.addLayout(this_row)
         img_scroll_area = QScrollArea()
@@ -153,8 +170,28 @@ class PreviewArea(QWidget):
         self.setLayout(layout)
 
     def set_image(self, img_d):
+        self.manual_change = False
+        self.bundle = img_d
+        self.bundle.data_changed.connect(self.bundle_changed)
         self.img_widget.set_img(img_d.get_image())
+        self.bundle_changed()
         self.update()
+        self.manual_change = True
+
+    def mark_bundle(self, keep=False):
+        if self.manual_change:
+            self.manual_change = False
+            self.bundle.set_manual(keep)
+        self.manual_change = True
+
+    def bundle_changed(self):
+        if self.bundle.keep is None:
+            self.discard_button.setChecked(False)
+            self.keep_button.setChecked(False)
+        elif not self.bundle.keep:
+            self.discard_button.setChecked(True)
+        else:
+            self.keep_button.setChecked(True)
 
 
 class InferenceInterface(QWidget):
@@ -175,6 +212,7 @@ class InferenceInterface(QWidget):
         path_row.addStretch()
         delete_button = QPushButton()
         delete_button.setText("Bilder aufräumen")
+        delete_button.clicked.connect(self.delete_images)
         delete_button.setStyleSheet("background-color: #BB0000; color: #FFFFFF; font-weight: bold;")
         path_row.addWidget(delete_button, alignment=Qt.AlignTrailing)
         main_layout.addLayout(path_row, stretch=0)
@@ -206,6 +244,9 @@ class InferenceInterface(QWidget):
 
     def img_selected(self, img_d):
         self.preview_area.set_image(img_d)
+
+    def delete_images(self):
+        self.thumbnail_list.delete_images()
 
     def closeEvent(self, close_event):
         self.thumbnail_list.stop_worker_thread()

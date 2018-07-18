@@ -52,7 +52,7 @@ class ClassifiedImageBundle(QObject):
     def set_np_image(self, np_array, thumb_width=128):
         self.np_array = np_array
         self.img = QImage(convert_image(np_array), np_array.shape[1], np_array.shape[0], QImage.Format_RGB32)
-        self.thumb = self.img.scaledToWidth(thumb_width, mode=Qt.SmoothTransformation)
+        self.create_thumb(thumb_width)
 
     def set_filename(self, filename):
         self.filename = filename
@@ -60,6 +60,9 @@ class ClassifiedImageBundle(QObject):
     def set_image_from_filename(self, filename, thumb_width=128):
         self.filename = filename
         self.img = QImage(filename)
+        self.thumb = self.img.scaledToWidth(thumb_width, mode=Qt.SmoothTransformation)
+
+    def create_thumb(self, thumb_width=128):
         self.thumb = self.img.scaledToWidth(thumb_width, mode=Qt.SmoothTransformation)
 
     def set_progress(self):
@@ -104,11 +107,13 @@ class ClassifiedImageBundle(QObject):
     def get_np_array(self):
         return self.np_array
 
-    def has_color(self):
-        return self.color is not None and \
-               self.status in [ClassifiedImageBundle.CLASSIFIED,
+    def is_decided(self):
+        return self.status in [ClassifiedImageBundle.CLASSIFIED,
                                ClassifiedImageBundle.MANUAL,
                                ClassifiedImageBundle.PROGRESS]
+
+    def has_color(self):
+        return self.color is not None and self.is_decided()
 
     def get_color(self):
         return self.color

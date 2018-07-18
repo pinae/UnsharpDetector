@@ -4,7 +4,7 @@ from __future__ import division, print_function, unicode_literals
 from generic_list_model import GenericListModel
 from classified_image_datatype import ClassifiedImageBundle
 from threading import Thread
-from queue import Queue
+from queue import Queue, Empty
 from inference import load_model
 import numpy as np
 
@@ -33,6 +33,7 @@ class InferencingList(GenericListModel):
     def __init__(self, *args):
         super().__init__(*args)
         self.work_queue = Queue()
+        self.queued_bundles = []
         self.inferencer_thread = Thread(
             target=inferencer,
             args=(self.work_queue,))
@@ -44,19 +45,26 @@ class InferencingList(GenericListModel):
         self.inferencer_thread.join()
 
     def update_queue(self):
-        self.clear_queue()
+        clear_necessary = False
+        for item in self.queued_bundles:
+            if item not in self.list or not item.is_undecided():
+                clear_necessary = True
+        if clear_necessary:
+            self.clear_queue()
         for item in self.list:
-            if item.is_undecided():
+            if item.is_undecided() and item not in self.queued_bundles:
                 self.work_queue.put(item)
+                self.queued_bundles.append(item)
                 item.ani.start()
 
     def clear_queue(self):
         while not self.work_queue.empty():
             try:
                 self.work_queue.get(False)
-            except Queue.Empty:
-                continue
+            except Empty:
+                break
             self.work_queue.task_done()
+        self.queued_bundles = []
 
     def append(self, item):
         super().append(item)

@@ -1,13 +1,16 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
-from PyQt5.QtCore import Qt, QAbstractListModel, QModelIndex
+from PyQt5.QtCore import Qt, QAbstractListModel
 
 
 class GenericListModel(QAbstractListModel):
     def __init__(self, *args):
         super().__init__(*args)
         self.list = []
+
+    def __iter__(self):
+        return iter(self.list)
 
     def rowCount(self, parent=None, *args, **kwargs):
         if parent:
@@ -23,6 +26,12 @@ class GenericListModel(QAbstractListModel):
         item.data_changed.connect(self.data_changed)
         self.list.append(item)
         new_index = self.createIndex(len(self.list), 0, item)
+        self.dataChanged.emit(new_index, new_index, [Qt.EditRole])
+
+    def pop(self, index):
+        self.list.pop(index)
+        i = min(index, len(self.list) - 1)
+        new_index = self.createIndex(i, 0, self.list[i])
         self.dataChanged.emit(new_index, new_index, [Qt.EditRole])
 
     def data_changed(self, item):

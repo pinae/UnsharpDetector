@@ -7,3 +7,4 @@ keras
 sacred
 matplotlib
 pymongo
+pyqt5

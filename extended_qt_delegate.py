@@ -72,7 +72,7 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
                            style_option_view_item.rect.left() + mid.get_thumb().width() - 7,
                            style_option_view_item.rect.top() + mid.get_thumb().height() - 20)
                 ])
-            if mid.keep is False or mid.get_show_buttons():
+            if (mid.keep is not None and not mid.keep) or mid.get_show_buttons():
                 qp.setBrush(QColor(255, 0, 0))
                 qp.setPen(QPen(QBrush(QColor(255, 0, 0)), 1.0, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
                 qp.drawEllipse(style_option_view_item.rect.left() + 8,
@@ -99,19 +99,21 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
             return super().sizeHint(style_option_view_item, model_index)
 
     def editorEvent(self, event, model, style_option_view_item, model_index):
-        x_in_delegate = event.pos().x() - style_option_view_item.rect.left()
-        y_in_delegate = event.pos().y() - style_option_view_item.rect.top()
-        thumb_w = model_index.data().get_thumb().width()
-        thumb_h = model_index.data().get_thumb().height()
-        if event.button() == Qt.NoButton:
-            model.reset_whole_list()
-            if 4 < x_in_delegate < 4 + thumb_w and 4 < y_in_delegate < 4 + thumb_h:
-                model_index.data().set_show_buttons(True)
-        elif event.button() == Qt.LeftButton and Qt.LeftButton | event.buttons() == event.buttons():
-            if 9 <= x_in_delegate <= 39 and thumb_h - 30 <= y_in_delegate <= thumb_h:
-                model_index.data().set_manual(False)
-            elif thumb_w - 30 <= x_in_delegate <= thumb_w and thumb_h - 30 <= y_in_delegate <= thumb_h:
-                model_index.data().set_manual(True)
-            elif 4 < x_in_delegate < 4 + thumb_w and 4 < y_in_delegate < 4 + thumb_h:
-                model_index.data().select()
+        mid = model_index.data()
+        if type(mid) is ClassifiedImageBundle:
+            x_in_delegate = event.pos().x() - style_option_view_item.rect.left()
+            y_in_delegate = event.pos().y() - style_option_view_item.rect.top()
+            thumb_w = model_index.data().get_thumb().width()
+            thumb_h = model_index.data().get_thumb().height()
+            if event.button() == Qt.NoButton:
+                model.reset_whole_list()
+                if 4 < x_in_delegate < 4 + thumb_w and 4 < y_in_delegate < 4 + thumb_h:
+                    model_index.data().set_show_buttons(True)
+            elif event.button() == Qt.LeftButton and Qt.LeftButton | event.buttons() == event.buttons():
+                if 9 <= x_in_delegate <= 39 and thumb_h - 30 <= y_in_delegate <= thumb_h:
+                    model_index.data().set_manual(False)
+                elif thumb_w - 30 <= x_in_delegate <= thumb_w and thumb_h - 30 <= y_in_delegate <= thumb_h:
+                    model_index.data().set_manual(True)
+                elif 4 < x_in_delegate < 4 + thumb_w and 4 < y_in_delegate < 4 + thumb_h:
+                    model_index.data().select()
         return super().editorEvent(event, model, style_option_view_item, model_index)
