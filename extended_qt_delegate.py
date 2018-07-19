@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function, unicode_literals
-from PyQt5.QtCore import Qt, QSize, QLineF
+from PyQt5.QtCore import Qt, QSize, QLineF, QEvent
 from PyQt5.QtWidgets import QStyledItemDelegate
 from PyQt5.QtGui import QPen, QBrush, QPainter, QColor
 from classified_image_datatype import ClassifiedImageBundle
@@ -105,11 +105,11 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
             y_in_delegate = event.pos().y() - style_option_view_item.rect.top()
             thumb_w = model_index.data().get_thumb().width()
             thumb_h = model_index.data().get_thumb().height()
-            if event.button() == Qt.NoButton:
+            if event.type() == QEvent.MouseMove:
                 model.reset_whole_list()
                 if 4 < x_in_delegate < 4 + thumb_w and 4 < y_in_delegate < 4 + thumb_h:
                     model_index.data().set_show_buttons(True)
-            elif event.button() == Qt.LeftButton and Qt.LeftButton | event.buttons() == event.buttons():
+            if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
                 if 9 <= x_in_delegate <= 39 and thumb_h - 30 <= y_in_delegate <= thumb_h:
                     model_index.data().set_manual(False)
                 elif thumb_w - 30 <= x_in_delegate <= thumb_w and thumb_h - 30 <= y_in_delegate <= thumb_h:
