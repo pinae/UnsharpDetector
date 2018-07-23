@@ -186,8 +186,12 @@ class PreviewArea(QWidget):
 
     def bundle_changed(self):
         if self.bundle.keep is None:
+            self.discard_button.setAutoExclusive(False)
+            self.keep_button.setAutoExclusive(False)
             self.discard_button.setChecked(False)
             self.keep_button.setChecked(False)
+            self.discard_button.setAutoExclusive(True)
+            self.keep_button.setAutoExclusive(True)
         elif not self.bundle.keep:
             self.discard_button.setChecked(True)
         else:
