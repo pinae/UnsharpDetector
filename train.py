@@ -1,13 +1,11 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-from __future__ import division, unicode_literals, print_function
 from sacred import Experiment
 from sacred.observers import MongoObserver
 from sacred.utils import apply_backspaces_and_linefeeds
-from keras.optimizers import Adam
-import keras.backend as K
-from keras.losses import categorical_crossentropy
-from keras.callbacks import Callback, ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
+import tensorflow.keras.backend as K
+from tensorflow.keras.losses import categorical_crossentropy
+from tensorflow.keras.callbacks import Callback, ModelCheckpoint
 from model import create_model
 from TrainingDataGenerator import UnsharpTrainingDataGenerator
 from ValidationDataProvider import UnsharpValidationDataProvider
@@ -16,7 +14,7 @@ import json
 import os
 
 ex = Experiment("UnsharpDetector")
-ex.observers.append(MongoObserver.create(url=mongo_url, db_name=db_name))
+ex.observers.append(MongoObserver(url=mongo_url, db_name=db_name))
 ex.captured_out_filter = apply_backspaces_and_linefeeds
 last_result = None
 
@@ -102,16 +100,11 @@ def config():
     res_fs = (3, 3)
     eac_size = 16
     image_folders = [
-        "../../Bilder/gesammelte Landschaftsbilder/",
-        "../../Bilder/kleine Landschaftsbilder/",
-        "../../Bilder/Hintergrundbilder - schöne Landschaften/",
-        "../../Bilder/Bilder der Woche/",
-        "../../Bilder/Texturen/",
-        "../../Bilder/Famous Photos/",
-        "../../Bilder/Korea/",
-        "../../Bilder/Urlaubsbilder/",
-        "../../Bilder/Stephanie Waetjen/",
-        "../../Bilder/Sharp Photos/"
+        "../../Bilder/20190228-Antwerpen/",
+        "../../Bilder/CC-Photos/",
+        "../../Bilder/SparkMakerFHD/",
+        "../../Bilder/20191117-TelAviv/",
+        "../../Bilder/20190906-Toskana/"
     ]
     epochs = 50
     use_gui = True
@@ -160,14 +153,14 @@ def train(gui_callback, input_size, bs, lr, lr_decay, image_folders, epochs, loa
         model.load_weights("unsharpDetectorWeights.hdf5")
     else:
         model.save("unsharpDetectorWeights.hdf5", include_optimizer=True)
-    model.fit_generator(generator=data_generator,
-                        validation_data=validation_data_provider,
-                        callbacks=[ModelCheckpoint("unsharpDetectorWeights.hdf5", monitor='val_loss',
-                                                   save_best_only=False, mode='auto', period=1),
-                                   LogPerformance(model, gui_callback, data_generator, bs)],
-                        epochs=epochs,
-                        use_multiprocessing=True,
-                        workers=8, max_queue_size=30)
+    model.fit(x=data_generator,
+              validation_data=validation_data_provider,
+              callbacks=[ModelCheckpoint("unsharpDetectorWeights.hdf5", monitor='val_loss',
+                                         save_best_only=False, mode='auto', period=1),
+                         LogPerformance(model, gui_callback, data_generator, bs)],
+              epochs=epochs,
+              use_multiprocessing=True,
+              workers=8, max_queue_size=30)
 
 
 @ex.automain

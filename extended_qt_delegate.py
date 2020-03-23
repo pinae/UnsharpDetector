@@ -1,6 +1,4 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-from __future__ import division, print_function, unicode_literals
 from PyQt5.QtCore import Qt, QSize, QLineF, QEvent
 from PyQt5.QtWidgets import QStyledItemDelegate
 from PyQt5.QtGui import QPen, QBrush, QPainter, QColor

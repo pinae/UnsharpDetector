@@ -1,10 +1,8 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-from __future__ import division, print_function, unicode_literals
-from keras import backend as K
-from keras.engine.topology import Layer
-from keras.models import Model
-from keras.layers import Input
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Layer
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input
 import numpy as np
 import unittest
 

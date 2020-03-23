@@ -1,9 +1,8 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import keras.backend as K
-from keras.engine.topology import Layer
-from keras.models import Model
-from keras.layers import Input
+import tensorflow.keras.backend as K
+from tensorflow.keras.layers import Layer
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input
 import numpy as np
 import unittest
 
@@ -36,7 +35,14 @@ class EdgeAndCenterExtractionLayer(Layer):
         return K.reshape(K.concatenate([l1, l2, l3], axis=2), (batch_size, 4 * self.w, 4 * self.w, channel_count))
 
     def compute_output_shape(self, input_shape):
+        print("EAC compute shape:", input_shape, "->", (input_shape[0], self.w * 4, self.w * 4, input_shape[3]))
         return input_shape[0], self.w * 4, self.w * 4, input_shape[3]
+
+    def get_config(self):
+        config = {
+            'width': self.w
+        }
+        return config
 
 
 class TestEdgeAndCenterExtractionLayer(unittest.TestCase):

@@ -1,8 +1,6 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-from __future__ import division, print_function
 from os import path, listdir
-from keras.utils import Sequence
+from tensorflow.keras.utils import Sequence
 from random import random, choice, randrange
 from skimage.io import imread, imsave
 from skimage.transform import resize, rotate

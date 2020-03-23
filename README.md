@@ -23,9 +23,8 @@ python3 -m venv env
 Windows does not find `python.exe` by default. So you may have to specify
 the full path:
 
-```plaintext
-..\..\AppData\Local\Programs\Python\«
-     »Python36\python.exe -m venv env
+```shell script
+..\..\AppData\Local\Programs\Python\Python36\python.exe -m venv env
 ```
 
 Start the virtualenv on Windows with `env\Scripts\activate.bat`. On 
@@ -33,7 +32,7 @@ Linux and macOS use `source env/bin/activate`.
 
 Install all other dependencies with `pip`:
 
-```plaintext
+```shell script
 pip install -r requirements.txt
 ```
 
@@ -46,6 +45,11 @@ network.
 To use the program activate the virtualenv first with 
 `env\Scripts\activate.bat` (Windows) or `source env/bin/activate` 
 (Linux and macOS).
+
+Run the graphical Application with: 
+```shell script
+python inference_gui.py
+```
 
 The program starts after a couple of seconds (initialization of 
 TensorFlow). Initially it displays an empty list. You fill the list by

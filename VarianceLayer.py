@@ -1,10 +1,8 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-from __future__ import division, print_function, unicode_literals
-from keras import backend as K
-from keras.engine.topology import Layer
-from keras.models import Model
-from keras.layers import Input
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Layer
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input
 import numpy as np
 import unittest
 
@@ -28,6 +26,12 @@ class VarianceLayer(Layer):
 
     def compute_output_shape(self, input_shape):
         return input_shape[0], input_shape[1] // self.tile_size[0], input_shape[2] // self.tile_size[1], input_shape[3]
+
+    def get_config(self):
+        config = {
+            'tile_size': self.tile_size
+        }
+        return config
 
 
 class TestVarianceLayer(unittest.TestCase):
