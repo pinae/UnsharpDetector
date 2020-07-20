@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtCore import Qt, QSize, QLineF, QEvent
 from PyQt5.QtWidgets import QStyledItemDelegate
-from PyQt5.QtGui import QPen, QBrush, QPainter, QColor
+from PyQt5.QtGui import QPen, QBrush, QPainter, QColor, QMouseEvent
 from classified_image_datatype import ClassifiedImageBundle
 
 
@@ -97,6 +97,8 @@ class ImageableStyledItemDelegate(QStyledItemDelegate):
             return super().sizeHint(style_option_view_item, model_index)
 
     def editorEvent(self, event, model, style_option_view_item, model_index):
+        if type(event) != QMouseEvent:
+            return super().editorEvent(event, model, style_option_view_item, model_index)
         mid = model_index.data()
         if type(mid) is ClassifiedImageBundle:
             x_in_delegate = event.pos().x() - style_option_view_item.rect.left()
